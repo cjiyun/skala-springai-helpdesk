@@ -29,7 +29,8 @@ public class OrderSummaryController {
   @Operation(summary = "주문 한 문장 요약", description = "본인 주문만 요약된다. 모델을 호출하므로 비용이 발생한다.")
   @ApiResponses({
       @ApiResponse(responseCode = "200", description = "요약 성공"),
-      @ApiResponse(responseCode = "404", description = "없는 주문이거나 남의 주문")
+      @ApiResponse(responseCode = "404", description = "없는 주문이거나 남의 주문"),
+      @ApiResponse(responseCode = "503", description = "예상하지 못한 오류로 요청 처리 실패")
   })
   public SummaryResponse summary(
       @Parameter(description = "주문번호", example = "12345") @PathVariable String orderId,

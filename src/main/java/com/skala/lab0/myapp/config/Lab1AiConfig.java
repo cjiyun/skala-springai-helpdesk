@@ -13,7 +13,7 @@ public class Lab1AiConfig {
       .defaultSystem("""
         너는 이커머스 주문 상담 도우미다.
         주어진 주문 정보만 사용해 한국어 한 문장으로 요약한다.
-        추측하지 않는다. 정보가 부족하면"정보가 부족합니다"라고 답한다.
+        추측하지 않는다. 정보가 부족하면 "정보가 부족합니다"라고 답한다.
       """)
       .defaultOptions(ChatOptions.builder()
         .temperature(0.0)
