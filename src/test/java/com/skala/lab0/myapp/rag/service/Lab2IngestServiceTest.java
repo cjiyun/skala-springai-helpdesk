@@ -27,11 +27,11 @@ class Lab2IngestServiceTest {
     VectorStore vectorStore = SimpleVectorStore.builder(embeddingModel).build();
     Lab2IngestService service = new Lab2IngestService(vectorStore);
 
-    service.ingest(new ClassPathResource("lab2-docs/return-policy.md"), "policy");
+    service.ingest(new ClassPathResource("lab2-docs/return-policy.md"), "policy", "1");
     Lab2IngestResponse membership = service.ingest(
-        new ClassPathResource("lab2-docs/membership.md"), "membership");
+        new ClassPathResource("lab2-docs/membership.md"), "membership", "1");
     Lab2IngestResponse reindexed = service.ingest(
-        new ClassPathResource("lab2-docs/shipping-policy.md"), "policy");
+        new ClassPathResource("lab2-docs/shipping-policy.md"), "policy", "2");
 
     List<Document> stored = vectorStore.similaritySearch(SearchRequest.builder()
         .query("반품 기한")
@@ -46,5 +46,7 @@ class Lab2IngestServiceTest {
         .anyMatch(text -> text.contains("실버 등급"));
     assertThat(stored).extracting(document -> document.getMetadata().get("source"))
         .containsExactlyInAnyOrder("policy", "membership");
+    assertThat(stored).extracting(document -> document.getMetadata().get("version"))
+        .containsExactlyInAnyOrder("2", "1");
   }
 }

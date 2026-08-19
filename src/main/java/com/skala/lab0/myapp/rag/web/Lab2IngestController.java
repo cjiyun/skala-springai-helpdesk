@@ -25,9 +25,9 @@ public class Lab2IngestController {
   @PostMapping("/ingest")
   public List<Lab2IngestResponse> ingest() {
     return List.of(
-        service.ingest(new ClassPathResource("lab2-docs/return-policy.md"), "return-policy"),
-        service.ingest(new ClassPathResource("lab2-docs/shipping-policy.md"), "shipping-policy"),
-        service.ingest(new ClassPathResource("lab2-docs/membership.md"), "membership"));
+        service.ingest(new ClassPathResource("lab2-docs/return-policy.md"), "return-policy", "1"),
+        service.ingest(new ClassPathResource("lab2-docs/shipping-policy.md"), "shipping-policy", "1"),
+        service.ingest(new ClassPathResource("lab2-docs/membership.md"), "membership", "1"));
   }
 
 

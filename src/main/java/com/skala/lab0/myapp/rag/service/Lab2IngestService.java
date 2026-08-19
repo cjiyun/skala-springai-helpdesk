@@ -1,7 +1,7 @@
 package com.skala.lab0.myapp.rag.service;
 
-import java.util.List;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.ai.document.Document;
@@ -25,15 +25,14 @@ public class Lab2IngestService {
     this.vectorStore = vectorStore;
   }
 
-  public Lab2IngestResponse ingest(Resource resource, String source) {
+  public Lab2IngestResponse ingest(Resource resource, String source, String version) {
     TextReader reader = new TextReader(resource);
-    reader.getCustomMetadata().putAll(Map.of("source", source, "version", "1"));
+    reader.getCustomMetadata().put("version", version);
 
     List<Document> documents = reader.get().stream()
       .map(document -> {
         Map<String, Object> metadata = new HashMap<>(document.getMetadata());
         metadata.put("source", source);
-        metadata.put("version", "1");
         return new Document(document.getText(), metadata);
       })
       .toList();
