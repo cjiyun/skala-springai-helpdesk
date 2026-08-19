@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp;
+package com.skala.lab0.myapp.rag.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,18 +11,19 @@ import org.springframework.core.io.ClassPathResource;
 import java.io.InputStream;
 import java.util.List;
 
-// assertThat을 사용하기 위한 정적 임포트
 import static org.assertj.core.api.Assertions.assertThat;
+
+// 2. 다른 패키지에 있는 클래스들을 명시적으로 import
+import com.skala.lab0.myapp.rag.dto.Lab2AnswerDto;
 
 @Slf4j
 @SpringBootTest
-class RagEvaluationTest {
-    
+class Lab2RagEvaluationTest {
+
+    private final ObjectMapper mapper = new ObjectMapper();
+
     @Autowired
-    private ObjectMapper mapper;
-    
-    @Autowired
-    private AnswerService service;
+    private Lab2AnswerService service; // 1. 타입명 변경
 
     record Golden(String q, List<String> must, String src){}
 
@@ -31,15 +32,24 @@ class RagEvaluationTest {
 
         InputStream resource = new ClassPathResource("golden.json").getInputStream();
         
-        var golden = mapper.readValue(resource, new TypeReference(<List<Golden>>(){});
+        // 2. TypeReference 제네릭 문법 수정
+        var golden = mapper.readValue(resource, new TypeReference<List<Golden>>() {});
+        
         int pass = 0;
         for (Golden g: golden) {
-            AnswerDto a = service.ask(g.q());
+            Lab2AnswerDto a = service.ask(g.q()); // 1. 타입명 변경
+            
             boolean hit = g.must().stream().allMatch(k -> a.answer().contains(k));
+            
+            // 3. 마지막 괄호 추가하여 조건문 정상적으로 닫기
             boolean cite = g.src() == null
-                        || (a.sources()!=null && a.sources().stream().anyMatch(s -> s.contains(g.src()));
-            if (hit && cite) { pass ++;}
-            else {log.warn("실패: {}\n  답변: {}\n  출처: {}", g.q(), a.answer(), a.sources());}
+                        || (a.sources() != null && a.sources().stream().anyMatch(s -> s.contains(g.src())));
+                        
+            if (hit && cite) { 
+                pass++;
+            } else {
+                log.warn("실패: {}\n  답변: {}\n  출처: {}", g.q(), a.answer(), a.sources());
+            }
         }
         log.info("통과 {}/{}", pass, golden.size());
         assertThat(pass).isGreaterThanOrEqualTo(8);
