@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.service;
+package com.skala.lab0.myapp.order.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,9 +7,9 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.transaction.annotation.Transactional;
 
-import com.skala.lab0.myapp.domain.Order;
-import com.skala.lab0.myapp.dto.SummaryResponse;
-import com.skala.lab0.myapp.repository.OrderRepository;
+import com.skala.lab0.myapp.order.domain.Order;
+import com.skala.lab0.myapp.order.dto.SummaryResponse;
+import com.skala.lab0.myapp.order.repository.OrderRepository;
 
 @Service
 @Transactional(readOnly = true)

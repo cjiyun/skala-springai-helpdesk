@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.dto;
+package com.skala.lab0.myapp.order.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 

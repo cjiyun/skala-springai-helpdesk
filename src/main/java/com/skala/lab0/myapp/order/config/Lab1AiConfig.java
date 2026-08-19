@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.config;
+package com.skala.lab0.myapp.order.config;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.prompt.ChatOptions;

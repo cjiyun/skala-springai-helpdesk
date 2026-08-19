@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.domain;
+package com.skala.lab0.myapp.order.domain;
 
 public enum OrderStatus {
     ORDERED("주문 완료"),

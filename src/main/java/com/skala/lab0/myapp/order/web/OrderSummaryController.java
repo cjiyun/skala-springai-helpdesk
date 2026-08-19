@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.web;
+package com.skala.lab0.myapp.order.web;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -6,8 +6,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.skala.lab0.myapp.dto.SummaryResponse;
-import com.skala.lab0.myapp.service.OrderSummaryService;
+import com.skala.lab0.myapp.order.dto.SummaryResponse;
+import com.skala.lab0.myapp.order.service.OrderSummaryService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;

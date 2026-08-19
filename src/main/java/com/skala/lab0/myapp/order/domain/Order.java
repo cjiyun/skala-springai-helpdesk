@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.domain;
+package com.skala.lab0.myapp.order.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

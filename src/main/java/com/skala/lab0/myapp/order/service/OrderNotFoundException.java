@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.service;
+package com.skala.lab0.myapp.order.service;
 
 public class OrderNotFoundException extends RuntimeException {
 

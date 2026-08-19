@@ -1,4 +1,4 @@
-package com.skala.lab0.myapp.web;
+package com.skala.lab0.myapp.order.web;
 
 import java.util.UUID;
 
@@ -9,8 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.skala.lab0.myapp.dto.ErrorResponse;
-import com.skala.lab0.myapp.service.OrderNotFoundException;
+import com.skala.lab0.myapp.order.dto.ErrorResponse;
+import com.skala.lab0.myapp.order.service.OrderNotFoundException;
 
 @RestControllerAdvice
 public class Lab1ExceptionHandler {
