@@ -13,8 +13,8 @@ import com.skala.lab0.myapp.rag.dto.Lab2ChunkResponse;
 public class Lab2SearchService {
   private final VectorStore vectorStore;
 
-  @Value("${lab2.rag.search.min-score:0.5}")
-  private double minScore = 0.5;
+  @Value("${lab2.rag.search.min-score:0.29}")
+  private double minScore = 0.29;
 
   public Lab2SearchService(VectorStore vectorStore) {
     this.vectorStore = vectorStore;
