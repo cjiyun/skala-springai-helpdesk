@@ -8,6 +8,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.TextReader;
 import org.springframework.ai.transformer.splitter.TokenTextSplitter;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,9 @@ import com.skala.lab0.myapp.rag.dto.Lab2IngestResponse;
 @Service
 public class Lab2IngestService {
   private final VectorStore vectorStore;
+
+  @Value("${lab2.rag.chunk-size:400}")
+  private int chunkSize = 400;
 
   public Lab2IngestService(VectorStore vectorStore) {
     this.vectorStore = vectorStore;
@@ -35,7 +39,7 @@ public class Lab2IngestService {
       .toList();
 
     List<Document> chunks = TokenTextSplitter.builder()
-        .withChunkSize(400)
+        .withChunkSize(chunkSize)
         .withMinChunkSizeChars(200)
         .build()
       .apply(documents);
