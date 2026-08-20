@@ -22,3 +22,11 @@ VALUES (
     'SHIPPING',
     '2026-08-24'
 );
+INSERT INTO orders (id, owner_id, item, status, eta)
+VALUES (
+    '99999',
+    'user2',
+    '스마트워치',
+    'SHIPPING',
+    '2026-08-25'
+);
