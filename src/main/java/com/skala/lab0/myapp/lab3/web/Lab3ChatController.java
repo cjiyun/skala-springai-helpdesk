@@ -1,5 +1,7 @@
 package com.skala.lab0.myapp.lab3.web;
 
+import java.security.Principal;
+
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -24,16 +26,18 @@ public class Lab3ChatController {
             this.chatService = chatService;
         }
 
-        public record ChatRequest(String userId, String sessionId, String message) {}
+        public record ChatRequest(String sessionId, String message) {}
 
         /**
          * POST /lab3/chat
          * AI 어시스턴트 상담 API
          */
         @PostMapping
-        public ResponseEntity<Lab3ChatResponse> chat(@RequestBody ChatRequest request) {
+        public ResponseEntity<Lab3ChatResponse> chat(
+            @RequestBody ChatRequest request,
+            Principal principal) {
             Lab3ChatResponse response = chatService.chat(
-                request.userId(),
+                principal.getName(),
                 request.sessionId(),
                 request.message()
             );
@@ -41,15 +45,15 @@ public class Lab3ChatController {
         }
 
         /**
-         * GET /lab3/chat/history?userId=xxx&sessionId=yyy
+         * GET /lab3/chat/history?sessionId=yyy
          * 대화 이력 조회 API
          */
         @GetMapping("/history")
         public ResponseEntity<Lab3ChatResponse> getHistoryEntity(
-            @RequestParam String userId,
-            @RequestParam String sessionId
+            @RequestParam String sessionId,
+            Principal principal
         ) {
-            Lab3ChatResponse historyResponse = chatService.getHistory(userId, sessionId);
+            Lab3ChatResponse historyResponse = chatService.getHistory(principal.getName(), sessionId);
             return ResponseEntity.ok(historyResponse);
         }
 }

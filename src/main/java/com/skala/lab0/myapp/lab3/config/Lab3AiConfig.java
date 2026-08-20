@@ -13,6 +13,7 @@ import com.skala.lab0.myapp.lab3.advisor.AuditAdvisor;
 import com.skala.lab0.myapp.lab3.advisor.RagAdvisor;
 import com.skala.lab0.myapp.lab3.advisor.SafetyAdvisor;
 import com.skala.lab0.myapp.lab3.advisor.TokenMeterAdvisor;
+import com.skala.lab0.myapp.lab3.tools.OrderTools;
 import io.micrometer.core.instrument.MeterRegistry;
 
 @Configuration
@@ -31,9 +32,8 @@ public class Lab3AiConfig {
             ChatClient.Builder builder,
             VectorStore vs,
             ChatMemory memory,
-            MeterRegistry meterRegistry
-            // TODO: 지윤님 OrderTools 완성 후 주석 해제
-            // , com.skala.lab0.myapp.lab3.tools.OrderTools tools
+            MeterRegistry meterRegistry,
+            OrderTools tools
     ) {
         var clientBuilder = builder
                 .defaultAdvisors(
@@ -44,8 +44,7 @@ public class Lab3AiConfig {
                         new TokenMeterAdvisor(meterRegistry)                // order 900 계측
                 );
 
-        // TODO: 지윤님 OrderTools 완성 후 주석 해제
-        // clientBuilder.defaultTools(tools);
+        clientBuilder.defaultTools(tools);
 
         return clientBuilder.build();
     }

@@ -1,6 +1,7 @@
 package com.skala.lab0.myapp.lab3.chat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
@@ -29,6 +30,7 @@ public class Lab3ChatService {
         String botReply = chatClient.prompt()
                 .user(message)
                 .advisors(advisorSpec -> advisorSpec.param("chat_memory_conversation_id", conversationId))
+                .toolContext(Map.of("userId", userId))
                 .call()
                 .content();
 
