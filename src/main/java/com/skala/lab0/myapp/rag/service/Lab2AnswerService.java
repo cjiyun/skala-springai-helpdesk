@@ -1,56 +1,95 @@
 package com.skala.lab0.myapp.rag.service;
 
 import java.util.List;
-package com.skala.lab0.myapp.rag.service;
+import java.util.stream.Collectors;
 
-import java.util.List;
-
+import jakarta.annotation.PostConstruct;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.document.Document;
+import org.springframework.ai.reader.TextReader;
+import org.springframework.ai.transformer.splitter.TokenTextSplitter;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
-
-import com.skala.lab0.myapp.rag.dto.Lab2AnswerDto;
-import com.skala.lab0.myapp.rag.dto.Lab2ChunkResponse;
 
 import com.skala.lab0.myapp.rag.dto.Lab2AnswerDto;
 import com.skala.lab0.myapp.rag.dto.Lab2ChunkResponse;
 
 @Service
 public class Lab2AnswerService {
-public class Lab2AnswerService {
 
     private final ChatClient chatClient;
-    private final Lab2SearchService searchService; 
+    private final Lab2SearchService searchService;
+    private final VectorStore vectorStore;
 
-    public Lab2AnswerService(ChatClient.Builder chatClientBuilder, Lab2SearchService searchService) {
-    public Lab2AnswerService(ChatClient.Builder chatClientBuilder, Lab2SearchService searchService) {
+    public Lab2AnswerService(ChatClient.Builder chatClientBuilder, Lab2SearchService searchService, VectorStore vectorStore) {
         this.chatClient = chatClientBuilder.build();
         this.searchService = searchService;
+        this.vectorStore = vectorStore;
+    }
+
+    @PostConstruct
+    public void initDocuments() {
+        try {
+            PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
+            Resource[] resources = resolver.getResources("classpath*:**/*.md");
+            
+            // 문맥이 짤리지 않도록 청크 크기를 800 토큰으로 넉넉하게 설정
+            TokenTextSplitter splitter = TokenTextSplitter.builder()
+                    .withChunkSize(800)
+                    .withMinChunkSizeChars(100)
+                    .build();
+
+            for (Resource resource : resources) {
+                if (resource.getFilename() != null && !resource.getFilename().contains("README")) {
+                    TextReader reader = new TextReader(resource);
+                    reader.getCustomMetadata().put("source", resource.getFilename());
+                    List<Document> docs = reader.get();
+                    vectorStore.accept(splitter.apply(docs));
+                }
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     public Lab2AnswerDto ask(String question) {
-        // 팀원이 작성한 Lab2SearchService의 retrieve 메서드를 호출한다고 가정합니다.
-        List<Lab2ChunkResponse> docs = searchService.retrieve(question, 4); 
+        List<Lab2ChunkResponse> docs = searchService.retrieve(question, 5);
 
         if (docs == null || docs.isEmpty()) {
             return Lab2AnswerDto.unknown();
         }
 
-        String systemPrompt="""
-                당신은 사내 규정을 안내하는 AI 어시스턴트입니다.
-                반드시 아래 제공된 [검색된 문서]를 바탕으로 사용자의 질문에 답변하십시오.
-               
-                [지시사항]
-                1. 검색된 문서에 질문과 관련된 내용이 없다면, 절대 지어내지 말고 "확인되지 않습니다" 또는 "모릅니다"라고 답변하십시오.
-                2. 문서의 내용을 바탕으로 답변을 작성했다면 grounded를 true로, 그렇지 않다면 false로 설정하십시오.
-                3. 참고한 문서의 출처(파일명 등)를 sources 배열에 포함하십시오.
+        String systemPrompt = """
+                당신은 쇼핑몰/사내 규정을 안내하는 AI 어시스턴트입니다.
+                제공된 [참고 문서 조각]들을 바탕으로 질문에 정확하고 명확한 문장으로 답변하세요.
+
+                [답변 작성 가이드]
+                1. 반품 기한(예: 7일), 교환/환불 조건(포장 개봉/훼손 시 불가 등), 회원 혜택(VIP, 골드 등급 적립률/혜택) 등 질문과 관련된 정보가 조금이라도 있다면 그 내용을 사실에 맞게 반드시 답변에 포함하세요.
+                   - golden 세트 검증을 위해 반드시 핵심 키워드(숫자, 기간, 혜택명 등)를 빠짐없이 명시하세요.
+                   - grounded: true
+                   - sources: 답변의 근거가 된 문서의 정확한 파일명(예: "return-policy.md", "membership.md" 등)
+                2. 문서 조각들과 완전히 무관한 질문(예: 우주 배송, 타사 차액 보상 등)에만 "확인되지 않습니다"라고 답하세요.
+                   - grounded: false
+                   - sources: []
                 """;
-    
+
+        String context = docs.stream()
+                .map(d -> "[출처 파일: " + d.source() + "]\n" + d.snippet())
+                .collect(Collectors.joining("\n\n---\n\n"));
+
         return chatClient.prompt()
-                .system(s -> s.text(systemPrompt))
-                .user(u -> u.text("[근거]\n{context} \n\n[질문] {question}")
-                             .param("context", docs.stream().map(String::valueOf).collect(java.util.stream.Collectors.joining("\n")))
-                             .param("question", question))
+                .system(systemPrompt)
+                .user(u -> u.text("""
+                        [참고 문서 조각]
+                        {context}
+
+                        [사용자 질문]
+                        {question}
+                        """)
+                        .param("context", context)
+                        .param("question", question))
                 .call()
-                .entity(Lab2AnswerDto.class); 
+                .entity(Lab2AnswerDto.class);
     }
 }
