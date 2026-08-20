@@ -17,9 +17,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
-class Lab2RagEvaluationTest {
+class Lab2RagEvaluationTest_v2 {
 
-    private static final Logger log = LoggerFactory.getLogger(Lab2RagEvaluationTest.class);
+    private static final Logger log = LoggerFactory.getLogger(Lab2RagEvaluationTest_v2.class);
 
     @Autowired
     private Lab2AnswerService answerService;
