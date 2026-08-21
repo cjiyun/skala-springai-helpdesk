@@ -2,6 +2,7 @@ package com.skala.lab0.myapp.lab3.advisor;
 
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatResponse;
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatService;
+import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
@@ -26,7 +27,12 @@ class MetricsAdvisorTest {
     void 계측_메트릭_수집_검증() {
         String userId = "user1";
         String sessionId = "session-metrics-01";
-        String question = "단순 변심 반품은 며칠 이내인가요?";
+        String question = "제 주문 12345는 지금 어디예요?";
+        Counter counterBefore = meterRegistry.find("ai.tool.calls")
+                .tag("tool", "getOrder")
+                .tag("result", "ok")
+                .counter();
+        double toolCallsBefore = counterBefore == null ? 0 : counterBefore.count();
 
         // 1. 질의응답 호출
         Lab3ChatResponse res = chatService.chat(userId, sessionId, question);
@@ -44,7 +50,13 @@ class MetricsAdvisorTest {
                 .forEach(meter -> log.info("Metric Registered: {} | Type: {}", 
                         meter.getId().getName(), meter.getId().getType()));
 
-        // 최소 1개 이상의 메트릭이 MeterRegistry에 바인딩되어 있는지 검증
-        assertThat(meterRegistry.getMeters()).isNotEmpty();
+        assertThat(meterRegistry.find("ai.tokens").counters()).isNotEmpty();
+        assertThat(meterRegistry.find("ai.latency").timers()).isNotEmpty();
+        Counter counterAfter = meterRegistry.find("ai.tool.calls")
+                .tag("tool", "getOrder")
+                .tag("result", "ok")
+                .counter();
+        assertThat(counterAfter).isNotNull();
+        assertThat(counterAfter.count()).isGreaterThan(toolCallsBefore);
     }
 }

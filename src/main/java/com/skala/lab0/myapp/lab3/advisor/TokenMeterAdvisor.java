@@ -35,12 +35,12 @@ public class TokenMeterAdvisor implements CallAdvisor {
             if (usage != null){
                 //프롬프트 토큰 계측
                 if (usage.getPromptTokens() != null){
-                    meterRegistry.counter("ai,tokens", "type", "prompt", "feature", "chat")
+                    meterRegistry.counter("ai.tokens", "type", "prompt", "feature", "chat")
                         .increment(usage.getPromptTokens());
                 }
                 // 생성(응답) 토큰 계측
                 if (usage.getCompletionTokens() != null) {
-                    meterRegistry.counter("ai,tokens", "type", "generation", "feature", "chat")
+                    meterRegistry.counter("ai.tokens", "type", "generation", "feature", "chat")
                         .increment(usage.getCompletionTokens());
                 }
             }

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ToolContext;
 
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
 import com.skala.lab0.myapp.lab3.order.OrderView;
 import com.skala.lab0.myapp.lab3.ticket.TicketService;
 import com.skala.lab0.myapp.lab3.ticket.TicketView;
@@ -25,12 +27,14 @@ class OrderToolsTest {
   private OrderRepository orders;
   private TicketService tickets;
   private OrderTools tools;
+  private SimpleMeterRegistry meterRegistry;
 
   @BeforeEach
   void setUp() {
     orders = mock(OrderRepository.class);
     tickets = mock(TicketService.class);
-    tools = new OrderTools(orders, tickets);
+    meterRegistry = new SimpleMeterRegistry();
+    tools = new OrderTools(orders, tickets, meterRegistry);
   }
 
   @Test
@@ -43,6 +47,10 @@ class OrderToolsTest {
     assertThat(result.orderId()).isEqualTo("12345");
     assertThat(result.status()).isEqualTo("배송 중");
     verify(orders).findByIdAndOwnerId("12345", "user1");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "getOrder")
+        .tag("result", "ok")
+        .counter().count()).isEqualTo(1);
   }
 
   @Test
@@ -52,6 +60,10 @@ class OrderToolsTest {
     assertThatThrownBy(() -> tools.getOrder("99999", context("user1")))
         .isInstanceOf(OrderNotFoundException.class);
     verify(orders).findByIdAndOwnerId("99999", "user1");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "getOrder")
+        .tag("result", "fail")
+        .counter().count()).isEqualTo(1);
   }
 
   @Test

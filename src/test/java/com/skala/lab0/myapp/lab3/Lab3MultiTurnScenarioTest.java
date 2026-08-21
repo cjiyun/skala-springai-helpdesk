@@ -2,6 +2,9 @@ package com.skala.lab0.myapp.lab3;
 
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatResponse;
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatService;
+import com.skala.lab0.myapp.lab3.ticket.TicketService;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -20,6 +23,9 @@ class Lab3MultiTurnScenarioTest {
 
     @Autowired
     private Lab3ChatService chatService;
+
+    @Autowired
+    private TicketService ticketService;
 
     // 세션 A (1~4턴 대화 맥락 유지)
     private static final String USER_ID = "user1";
@@ -51,7 +57,9 @@ class Lab3MultiTurnScenarioTest {
         log.info("[Turn 2] Q: {}", q);
         log.info("[Turn 2] A: {}", res.answer());
 
-        assertThat(res.answer()).isNotNull();
+        assertThat(res.answer())
+                .contains("12345")
+                .containsAnyOf("무선 이어폰", "배송 중", "2026-08-20");
     }
 
     @Test
@@ -64,7 +72,9 @@ class Lab3MultiTurnScenarioTest {
         log.info("[Turn 3] Q: {}", q);
         log.info("[Turn 3] A: {}", res.answer());
 
-        assertThat(res.answer()).isNotNull();
+        assertThat(res.answer())
+                .containsAnyOf("7일", "반품")
+                .containsAnyOf("12345", "무선 이어폰");
     }
 
     @Test
@@ -72,12 +82,23 @@ class Lab3MultiTurnScenarioTest {
     @DisplayName("Turn 4. 승인 게이트 — 티켓 번호 + 대기 안내")
     void turn4_refundApprovalGate() {
         String q = "환불로 접수해 주세요";
+        Set<String> existingTicketNumbers = ticketService.pending().stream()
+                .map(ticket -> ticket.ticketNo())
+                .collect(Collectors.toSet());
         Lab3ChatResponse res = chatService.chat(USER_ID, SESSION_A, q);
 
         log.info("[Turn 4] Q: {}", q);
         log.info("[Turn 4] A: {}", res.answer());
 
-        assertThat(res.answer()).containsAnyOf("접수", "대기", "PENDING", "승인", "티켓");
+        var ticket = ticketService.pending().stream()
+                .filter(candidate -> candidate.orderId().equals("12345"))
+                .filter(candidate -> !existingTicketNumbers.contains(candidate.ticketNo()))
+                .findFirst()
+                .orElseThrow();
+        assertThat(ticket.status()).isEqualTo("PENDING");
+        assertThat(res.answer())
+                .contains(ticket.ticketNo())
+                .containsAnyOf("접수", "대기", "PENDING", "승인", "티켓");
     }
 
     @Test
@@ -91,6 +112,8 @@ class Lab3MultiTurnScenarioTest {
         log.info("[Turn 5] A: {}", res.answer());
 
         // 이전 세션 A의 주문번호나 진행 내역을 모른 채 되물어야 함
-        assertThat(res.answer()).doesNotContain("12345");
+        assertThat(res.answer())
+                .doesNotContain("12345", "search-experiments", "A 옵션", "우주 배송")
+                .containsAnyOf("무엇", "어떤", "주문번호", "말씀");
     }
 }

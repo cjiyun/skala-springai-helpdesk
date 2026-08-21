@@ -33,7 +33,7 @@ public class Lab2AnswerService {
     public void initDocuments() {
         try {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
-            Resource[] resources = resolver.getResources("classpath*:**/*.md");
+            Resource[] resources = resolver.getResources("classpath*:lab2-docs/*.md");
             
             // 문맥이 짤리지 않도록 청크 크기를 800 토큰으로 넉넉하게 설정
             TokenTextSplitter splitter = TokenTextSplitter.builder()

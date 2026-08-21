@@ -2,7 +2,9 @@ package com.skala.lab0.myapp.lab3.chat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.slf4j.MDC;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
@@ -26,15 +28,21 @@ public class Lab3ChatService {
      */
     public Lab3ChatResponse chat(String userId, String sessionId, String message) {
         String conversationId = userId + ":" + sessionId;
+        String traceId = UUID.randomUUID().toString().substring(0, 8);
+        MDC.put("traceId", traceId);
 
-        String botReply = chatClient.prompt()
-                .user(message)
-                .advisors(advisorSpec -> advisorSpec.param("chat_memory_conversation_id", conversationId))
-                .toolContext(Map.of("userId", userId))
-                .call()
-                .content();
+        try {
+            String botReply = chatClient.prompt()
+                    .user(message)
+                    .advisors(advisorSpec -> advisorSpec.param("chat_memory_conversation_id", conversationId))
+                    .toolContext(Map.of("userId", userId))
+                    .call()
+                    .content();
 
-        return Lab3ChatResponse.of(botReply);
+            return Lab3ChatResponse.of(botReply);
+        } finally {
+            MDC.remove("traceId");
+        }
     }
     /**
      * 특정 사용자 세션의 대화 이력 조회

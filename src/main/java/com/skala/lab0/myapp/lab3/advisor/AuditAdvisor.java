@@ -37,8 +37,12 @@ public class AuditAdvisor implements CallAdvisor {
     @Override
     public ChatClientResponse adviseCall(ChatClientRequest request, CallAdvisorChain chain) {
         // 1. Trace ID 생성 및 MDC 등록
-        String traceId = UUID.randomUUID().toString().substring(0, 8);
-        MDC.put(TRACE_ID_KEY, traceId);
+        String traceId = MDC.get(TRACE_ID_KEY);
+        boolean ownsTraceId = traceId == null;
+        if (ownsTraceId) {
+            traceId = UUID.randomUUID().toString().substring(0, 8);
+            MDC.put(TRACE_ID_KEY, traceId);
+        }
 
         Timer.Sample sample = Timer.start(meterRegistry);
         long startTime = System.currentTimeMillis();
@@ -52,7 +56,8 @@ public class AuditAdvisor implements CallAdvisor {
             long elapsed = System.currentTimeMillis() - startTime;
 
             // 3. 지연 메트릭 기록 (성공)
-            sample.stop(Timer.builder("ai.call.latency")
+            sample.stop(Timer.builder("ai.latency")
+                    .tag("phase", "model")
                     .tag("status", "success")
                     .tag("feature", "chat")
                     .register(meterRegistry));
@@ -68,7 +73,8 @@ public class AuditAdvisor implements CallAdvisor {
             long elapsed = System.currentTimeMillis() - startTime;
 
             //3. 지연 메트릭 기록 (실패)
-            sample.stop(Timer.builder("ai.call.latency")
+            sample.stop(Timer.builder("ai.latency")
+                    .tag("phase", "model")
                     .tag("status", "error")
                     .tag("feature", "chat")
                     .register(meterRegistry));
@@ -77,7 +83,9 @@ public class AuditAdvisor implements CallAdvisor {
             throw e;
         } finally {
             // 4. 컨텍스트 정리
-            MDC.remove(TRACE_ID_KEY);
+            if (ownsTraceId) {
+                MDC.remove(TRACE_ID_KEY);
+            }
         }
     }
 }

@@ -57,8 +57,8 @@ public class RagAdvisor implements CallAdvisor {
 
         String userText = messages.get(lastUserIdx).getText();
 
-        // 주문 번호 조회나 환불 접수 등 도구 처리가 필요한 질의는 RAG 주입 없이 즉시 체인 통과
-        if (isToolAction(userText)) {
+        // 규정 질문에만 RAG를 적용한다. 주문·환불 행동이나 모호한 질문은 모델과 도구가 처리한다.
+        if (!isPolicyQuestion(userText)) {
             return chain.nextCall(request);
         }
 
@@ -79,6 +79,7 @@ public class RagAdvisor implements CallAdvisor {
             String augmentedUserText = """
                     아래 제공된 참고 문서를 바탕으로 질문에 정확하게 답변해 주세요.
                     답변 작성 시, 참고한 문서의 출처 파일명(예: (출처: return-policy.md))을 답변 문장 끝에 반드시 함께 명시해 주세요.
+                    질문에 "그거" 같은 대명사가 있으면 대화 이력에서 해석한 주문번호나 상품명을 답변에 반드시 밝혀 주세요.
 
                     [참고 문서]
                     %s
@@ -100,9 +101,14 @@ public class RagAdvisor implements CallAdvisor {
         return chain.nextCall(request);
     }
 
-    private boolean isToolAction(String text) {
+    private boolean isPolicyQuestion(String text) {
         if (text == null) return false;
         String lower = text.toLowerCase();
-        return lower.contains("ord-") || lower.contains("접수");
+        if (lower.contains("접수") || lower.contains("ord-") || lower.matches(".*\\d{5}.*")) {
+            return false;
+        }
+        return List.of("반품", "교환", "배송", "회원", "등급", "포인트", "규정", "정책")
+                .stream()
+                .anyMatch(lower::contains);
     }
 }
