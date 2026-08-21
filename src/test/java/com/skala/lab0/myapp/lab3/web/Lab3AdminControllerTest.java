@@ -34,9 +34,9 @@ class Lab3AdminControllerTest {
   @Test
   void 관리자는_PENDING_티켓을_조회한다() throws Exception {
     when(tickets.pending()).thenReturn(List.of(
-        new TicketView("T1", "12345", "PENDING", "승인 대기 중입니다.")));
+        new TicketView("T1", "12345", "REFUND", "PENDING", "승인 대기 중입니다.")));
 
-    mvc.perform(get("/lab3/admin/tickets/pending")
+    mvc.perform(get("/api/admin/tickets/pending")
             .with(user("admin").roles("ADMIN")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[0].ticketNo").value("T1"))
@@ -46,9 +46,9 @@ class Lab3AdminControllerTest {
   @Test
   void 관리자는_별도_API로_티켓을_승인한다() throws Exception {
     when(tickets.approve("T1"))
-        .thenReturn(new TicketView("T1", "12345", "APPROVED", "승인되었습니다."));
+        .thenReturn(new TicketView("T1", "12345", "REFUND", "APPROVED", "승인되었습니다."));
 
-    mvc.perform(post("/lab3/admin/tickets/T1/approve")
+    mvc.perform(post("/api/admin/tickets/T1/approve")
             .with(user("admin").roles("ADMIN")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("APPROVED"));
@@ -57,7 +57,7 @@ class Lab3AdminControllerTest {
 
   @Test
   void 일반_사용자는_티켓을_승인할_수_없다() throws Exception {
-    mvc.perform(post("/lab3/admin/tickets/T1/approve")
+    mvc.perform(post("/api/admin/tickets/T1/approve")
             .with(user("user1").roles("USER")))
         .andExpect(status().isForbidden());
   }
@@ -66,7 +66,7 @@ class Lab3AdminControllerTest {
   void 존재하지_않는_티켓_승인은_404를_반환한다() throws Exception {
     when(tickets.approve("missing")).thenThrow(new TicketNotFoundException("missing"));
 
-    mvc.perform(post("/lab3/admin/tickets/missing/approve")
+    mvc.perform(post("/api/admin/tickets/missing/approve")
             .with(user("admin").roles("ADMIN")))
         .andExpect(status().isNotFound());
   }
@@ -75,7 +75,7 @@ class Lab3AdminControllerTest {
   void 이미_승인된_티켓의_재승인은_409를_반환한다() throws Exception {
     when(tickets.approve("T1")).thenThrow(new TicketAlreadyApprovedException());
 
-    mvc.perform(post("/lab3/admin/tickets/T1/approve")
+    mvc.perform(post("/api/admin/tickets/T1/approve")
             .with(user("admin").roles("ADMIN")))
         .andExpect(status().isConflict());
   }

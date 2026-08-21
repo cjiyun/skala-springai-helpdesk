@@ -1,6 +1,6 @@
 package com.skala.lab0.myapp.lab3.advisor;
 
-import com.skala.lab0.myapp.lab3.chat.Lab3ChatResponse;
+import com.skala.lab0.myapp.lab3.chat.AnswerDto;
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
@@ -24,7 +24,7 @@ class AuditAdvisorTest {
         String sessionId = "session-audit-01";
         String question = "단순 변심 반품은 며칠 이내인가요?";
 
-        Lab3ChatResponse response = chatService.chat(userId, sessionId, question);
+        AnswerDto response = chatService.chat(userId, sessionId, question);
 
         log.info("[Audit 검증] 응답: {}", response.answer());
         assertThat(response.answer()).isNotNull();

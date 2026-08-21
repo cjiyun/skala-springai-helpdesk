@@ -1,6 +1,6 @@
 package com.skala.lab0.myapp.lab3.advisor;
 
-import com.skala.lab0.myapp.lab3.chat.Lab3ChatResponse;
+import com.skala.lab0.myapp.lab3.chat.AnswerDto;
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -35,7 +35,7 @@ class MetricsAdvisorTest {
         double toolCallsBefore = counterBefore == null ? 0 : counterBefore.count();
 
         // 1. 질의응답 호출
-        Lab3ChatResponse res = chatService.chat(userId, sessionId, question);
+        AnswerDto res = chatService.chat(userId, sessionId, question);
         assertThat(res.answer()).isNotNull();
 
         // 2. 누적된 메트릭 확인 및 로그 출력

@@ -7,14 +7,22 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.skala.lab0.myapp.order.dto.ErrorResponse;
 import com.skala.lab0.myapp.lab3.ticket.TicketAlreadyApprovedException;
 import com.skala.lab0.myapp.lab3.ticket.TicketNotFoundException;
 
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RestControllerAdvice(assignableTypes = Lab3AdminController.class)
+@RestControllerAdvice(assignableTypes = {Lab3AdminController.class, Lab3ChatController.class})
 public class Lab3ExceptionHandler {
+  @ExceptionHandler(ResponseStatusException.class)
+  public ResponseEntity<ErrorResponse> badRequest(ResponseStatusException exception) {
+    return ResponseEntity
+        .status(exception.getStatusCode())
+        .body(new ErrorResponse(exception.getReason(), null));
+  }
+
   @ExceptionHandler(AccessDeniedException.class)
   public ResponseEntity<ErrorResponse> forbidden() {
     return ResponseEntity

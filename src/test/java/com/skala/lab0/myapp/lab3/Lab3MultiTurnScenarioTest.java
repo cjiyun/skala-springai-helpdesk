@@ -1,6 +1,6 @@
 package com.skala.lab0.myapp.lab3;
 
-import com.skala.lab0.myapp.lab3.chat.Lab3ChatResponse;
+import com.skala.lab0.myapp.lab3.chat.AnswerDto;
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatService;
 import com.skala.lab0.myapp.lab3.ticket.TicketService;
 import java.util.Set;
@@ -38,7 +38,7 @@ class Lab3MultiTurnScenarioTest {
     @DisplayName("Turn 1. RAG — 규정 답변 + 출처")
     void turn1_ragPolicy() {
         String q = "단순 변심 반품은 며칠 이내인가요?";
-        Lab3ChatResponse res = chatService.chat(USER_ID, SESSION_A, q);
+        AnswerDto res = chatService.chat(USER_ID, SESSION_A, q);
         
         log.info("[Turn 1] Q: {}", q);
         log.info("[Turn 1] A: {}", res.answer());
@@ -52,7 +52,7 @@ class Lab3MultiTurnScenarioTest {
     @DisplayName("Turn 2. 도구 — 실시간 상태 조회")
     void turn2_toolOrderCheck() {
         String q = "제 주문 12345는 지금 어디예요?";
-        Lab3ChatResponse res = chatService.chat(USER_ID, SESSION_A, q);
+        AnswerDto res = chatService.chat(USER_ID, SESSION_A, q);
 
         log.info("[Turn 2] Q: {}", q);
         log.info("[Turn 2] A: {}", res.answer());
@@ -67,7 +67,7 @@ class Lab3MultiTurnScenarioTest {
     @DisplayName("Turn 3. 메모리 — 1·2를 함께 참조(대명사 해석)")
     void turn3_multiTurnMemory() {
         String q = "그럼 그거 반품 돼요?";
-        Lab3ChatResponse res = chatService.chat(USER_ID, SESSION_A, q);
+        AnswerDto res = chatService.chat(USER_ID, SESSION_A, q);
 
         log.info("[Turn 3] Q: {}", q);
         log.info("[Turn 3] A: {}", res.answer());
@@ -85,7 +85,7 @@ class Lab3MultiTurnScenarioTest {
         Set<String> existingTicketNumbers = ticketService.pending().stream()
                 .map(ticket -> ticket.ticketNo())
                 .collect(Collectors.toSet());
-        Lab3ChatResponse res = chatService.chat(USER_ID, SESSION_A, q);
+        AnswerDto res = chatService.chat(USER_ID, SESSION_A, q);
 
         log.info("[Turn 4] Q: {}", q);
         log.info("[Turn 4] A: {}", res.answer());
@@ -106,7 +106,7 @@ class Lab3MultiTurnScenarioTest {
     @DisplayName("Turn 5. 맥락 없음 — 되묻는다(세션 격리)")
     void turn5_sessionIsolation() {
         String q = "그거 어떻게 됐어요?";
-        Lab3ChatResponse res = chatService.chat(USER_ID, SESSION_B, q);
+        AnswerDto res = chatService.chat(USER_ID, SESSION_B, q);
 
         log.info("[Turn 5] Q: {}", q);
         log.info("[Turn 5] A: {}", res.answer());

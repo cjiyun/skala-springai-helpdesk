@@ -29,6 +29,7 @@ public class Lab2SearchService {
         .stream()
         .map(document -> new Lab2ChunkResponse(
             String.valueOf(document.getMetadata().get("source")),
+            String.valueOf(document.getMetadata().getOrDefault("version", "unknown")),
             document.getScore() == null ? 0 : document.getScore(),
             snippet(document.getText())))
         .toList();

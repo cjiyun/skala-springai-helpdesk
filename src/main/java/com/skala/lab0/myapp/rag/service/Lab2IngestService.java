@@ -33,6 +33,9 @@ public class Lab2IngestService {
       .map(document -> {
         Map<String, Object> metadata = new HashMap<>(document.getMetadata());
         metadata.put("source", source);
+        metadata.put("title", title(document.getText(), source));
+        metadata.put("docType", "POLICY");
+        metadata.put("dept", "HELPDESK");
         return new Document(document.getText(), metadata);
       })
       .toList();
@@ -46,6 +49,11 @@ public class Lab2IngestService {
     vectorStore.delete("source == '" + source + "'");
     vectorStore.add(chunks);
     return new Lab2IngestResponse(source, chunks.size());
+  }
+
+  private String title(String text, String fallback) {
+    return text.lines().filter(line -> line.startsWith("# ")).findFirst()
+        .map(line -> line.substring(2).trim()).orElse(fallback);
   }
 
 }

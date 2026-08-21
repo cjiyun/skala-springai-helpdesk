@@ -23,7 +23,7 @@ class Lab2SearchServiceTest {
     when(vectorStore.similaritySearch(any(SearchRequest.class))).thenReturn(List.of(
         Document.builder()
             .text("단순 변심 반품은 상품 수령 후 7일 이내입니다.")
-            .metadata(Map.of("source", "return-policy"))
+            .metadata(Map.of("source", "return-policy", "version", "2026-08-21"))
             .score(0.91)
             .build()));
 
@@ -32,6 +32,7 @@ class Lab2SearchServiceTest {
 
     assertThat(results).singleElement().satisfies(result -> {
       assertThat(result.source()).isEqualTo("return-policy");
+      assertThat(result.version()).isEqualTo("2026-08-21");
       assertThat(result.score()).isEqualTo(0.91);
       assertThat(result.snippet()).contains("7일");
     });

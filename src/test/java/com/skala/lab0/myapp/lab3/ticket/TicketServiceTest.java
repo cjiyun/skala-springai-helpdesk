@@ -55,8 +55,30 @@ class TicketServiceTest {
   }
 
   @Test
+  void 본인_주문의_교환은_EXCHANGE_PENDING_티켓을_생성한다() {
+    Order order = order("12345", "user1");
+    when(orders.findByIdAndOwnerId("12345", "user1")).thenReturn(Optional.of(order));
+
+    TicketView result = service.requestExchange("12345", "user1", "색상 변경");
+
+    assertThat(result.type()).isEqualTo("EXCHANGE");
+    assertThat(result.status()).isEqualTo("PENDING");
+    assertThat(result.message()).contains("승인 후");
+    assertThat(order.getStatus()).isEqualTo(OrderStatus.SHIPPING);
+  }
+
+  @Test
+  void 남의_주문에는_교환_티켓도_생성하지_않는다() {
+    when(orders.findByIdAndOwnerId("99999", "user1")).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> service.requestExchange("99999", "user1", "색상 변경"))
+        .isInstanceOf(OrderNotFoundException.class);
+    verify(tickets, never()).save(any());
+  }
+
+  @Test
   void 승인은_별도_서비스_호출에서만_상태를_변경한다() {
-    Ticket ticket = new Ticket("T1", "12345", "user1", "단순 변심", Instant.now());
+    Ticket ticket = new Ticket("T1", "12345", "user1", TicketType.REFUND, "단순 변심", Instant.now());
     when(tickets.findById("T1")).thenReturn(Optional.of(ticket));
 
     TicketView result = service.approve("T1");
@@ -75,7 +97,7 @@ class TicketServiceTest {
 
   @Test
   void 이미_승인된_티켓은_다시_승인할_수_없다() {
-    Ticket ticket = new Ticket("T1", "12345", "user1", "단순 변심", Instant.now());
+    Ticket ticket = new Ticket("T1", "12345", "user1", TicketType.REFUND, "단순 변심", Instant.now());
     ticket.approve(Instant.now());
     when(tickets.findById("T1")).thenReturn(Optional.of(ticket));
 

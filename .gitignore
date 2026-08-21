@@ -32,6 +32,7 @@ application-secret.properties
 # 로그
 *.log
 logs/
+/data/
 
 # 임시 파일
 *.tmp

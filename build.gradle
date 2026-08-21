@@ -47,7 +47,7 @@ dependencies {
 	// Spring AI OpenAI
 	// ===================
 	implementation 'org.springframework.ai:spring-ai-starter-model-openai'
-	implementation 'org.springframework.ai:spring-ai-vector-store'
+	implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
 }
 
 tasks.named('test') {

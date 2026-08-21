@@ -91,13 +91,42 @@ class OrderToolsTest {
 
   @Test
   void 환불_접수에도_ToolContext의_사용자를_전달한다() {
-    TicketView pending = new TicketView("T1", "12345", "PENDING", "승인 대기");
+    TicketView pending = new TicketView("T1", "12345", "REFUND", "PENDING", "승인 대기");
     when(tickets.requestRefund("12345", "user1", "단순 변심")).thenReturn(pending);
 
     TicketView result = tools.requestRefund("12345", "단순 변심", context("user1"));
 
     assertThat(result.status()).isEqualTo("PENDING");
     verify(tickets).requestRefund("12345", "user1", "단순 변심");
+  }
+
+  @Test
+  void 실제_도구_실행을_ToolContext에_기록한다() {
+    when(orders.findByIdAndOwnerId("12345", "user1"))
+        .thenReturn(Optional.of(order("12345", "user1")));
+    ToolUsage usage = new ToolUsage();
+
+    tools.getOrder("12345", new ToolContext(Map.of("userId", "user1", ToolUsage.CONTEXT_KEY, usage)));
+
+    assertThat(usage.wasUsed()).isTrue();
+  }
+
+  @Test
+  void 교환_접수는_EXCHANGE와_ToolContext_사용자를_전달하고_쓰기_호출을_기록한다() {
+    TicketView pending = new TicketView("T2", "12345", "EXCHANGE", "PENDING", "승인 대기");
+    when(tickets.requestExchange("12345", "user1", "색상 변경")).thenReturn(pending);
+    ToolUsage usage = new ToolUsage();
+
+    TicketView result = tools.requestExchange("12345", "색상 변경",
+        new ToolContext(Map.of("userId", "user1", ToolUsage.CONTEXT_KEY, usage)));
+
+    assertThat(result.type()).isEqualTo("EXCHANGE");
+    assertThat(result.status()).isEqualTo("PENDING");
+    assertThat(usage.wasUsed()).isTrue();
+    assertThat(usage.wasWriteUsed()).isTrue();
+    verify(tickets).requestExchange("12345", "user1", "색상 변경");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "requestExchange").tag("result", "ok").counter().count()).isEqualTo(1);
   }
 
   private ToolContext context(String userId) {

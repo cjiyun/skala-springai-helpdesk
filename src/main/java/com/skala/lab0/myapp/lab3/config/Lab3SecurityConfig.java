@@ -16,9 +16,9 @@ public class Lab3SecurityConfig {
   @Bean
   SecurityFilterChain lab3SecurityFilterChain(HttpSecurity http) throws Exception {
     return http
-        .csrf(csrf -> csrf.ignoringRequestMatchers("/lab3/**"))
+        .csrf(csrf -> csrf.ignoringRequestMatchers("/lab3/**", "/api/**"))
         .authorizeHttpRequests(requests -> requests
-            .requestMatchers("/lab3/chat/**").authenticated()
+            .requestMatchers("/api/chat/**", "/api/admin/**").authenticated()
             .anyRequest().permitAll())
         .httpBasic(basic -> {})
         .build();

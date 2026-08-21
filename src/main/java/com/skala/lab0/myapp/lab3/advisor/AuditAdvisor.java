@@ -9,11 +9,14 @@ import org.springframework.ai.chat.client.ChatClientRequest;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisor;
 import org.springframework.ai.chat.client.advisor.api.CallAdvisorChain;
+import org.springframework.ai.chat.client.advisor.api.StreamAdvisor;
+import org.springframework.ai.chat.client.advisor.api.StreamAdvisorChain;
+import reactor.core.publisher.Flux;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
-public class AuditAdvisor implements CallAdvisor {
+public class AuditAdvisor implements CallAdvisor, StreamAdvisor {
 
     private static final Logger log = LoggerFactory.getLogger(AuditAdvisor.class);
     private static final String TRACE_ID_KEY = "traceId";
@@ -31,7 +34,7 @@ public class AuditAdvisor implements CallAdvisor {
 
     @Override
     public int getOrder() {
-        return 0; // 가장 바깥쪽 실행
+        return 100;
     }
 
     @Override
@@ -87,5 +90,17 @@ public class AuditAdvisor implements CallAdvisor {
                 MDC.remove(TRACE_ID_KEY);
             }
         }
+    }
+
+    @Override
+    public Flux<ChatClientResponse> adviseStream(ChatClientRequest request, StreamAdvisorChain chain) {
+        Timer.Sample sample = Timer.start(meterRegistry);
+        Timer success = Timer.builder("ai.latency").tag("phase", "model").tag("status", "success")
+                .tag("feature", "chat-stream").register(meterRegistry);
+        Timer error = Timer.builder("ai.latency").tag("phase", "model").tag("status", "error")
+                .tag("feature", "chat-stream").register(meterRegistry);
+        return chain.nextStream(request)
+                .doOnComplete(() -> sample.stop(success))
+                .doOnError(exception -> sample.stop(error));
     }
 }

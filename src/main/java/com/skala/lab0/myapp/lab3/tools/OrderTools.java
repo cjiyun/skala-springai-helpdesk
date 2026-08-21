@@ -44,6 +44,7 @@ public class OrderTools {
     Timer.Sample sample = Timer.start(meterRegistry);
     String userId = null;
     try {
+      markUsed(context);
       userId = userId(context);
       String requiredOrderId = required(orderId, "orderId");
       OrderView result = orders.findByIdAndOwnerId(requiredOrderId, userId)
@@ -74,6 +75,7 @@ public class OrderTools {
     Timer.Sample sample = Timer.start(meterRegistry);
     String userId = null;
     try {
+      markWriteUsed(context);
       userId = userId(context);
       TicketView result = tickets.requestRefund(orderId, userId, reason);
       record("requestRefund", "ok", sample);
@@ -83,6 +85,34 @@ public class OrderTools {
     } catch (RuntimeException exception) {
       record("requestRefund", "fail", sample);
       log.warn("[AUDIT-TOOL] [traceId={}] requestRefund(orderId={}, userId={}, reason={}) failed: {}",
+          MDC.get("traceId"), orderId, userId, reason, exception.getMessage());
+      throw exception;
+    }
+  }
+
+  @Tool(returnDirect = true, description = """
+      사용자가 주문번호와 교환 사유를 말하며 자신의 주문 교환 접수를 요청할 때 사용한다.
+      환불 도구와 달리 EXCHANGE 유형의 관리자 승인 대기(PENDING) 티켓만 생성하며 실제 교환은 처리하지 않는다.
+      예: '주문 12345를 색상 변경 사유로 교환 접수해 주세요.'
+      현재 질문과 같은 대화의 이전 발화에도 주문번호나 사유가 없으면 누락된 정보를 물어본다.
+      """)
+  public TicketView requestExchange(
+      @ToolParam(description = "교환 접수할 주문번호. 예: 12345") String orderId,
+      @ToolParam(description = "교환 사유. 예: 색상 변경") String reason,
+      ToolContext context) {
+    Timer.Sample sample = Timer.start(meterRegistry);
+    String userId = null;
+    try {
+      markWriteUsed(context);
+      userId = userId(context);
+      TicketView result = tickets.requestExchange(orderId, userId, reason);
+      record("requestExchange", "ok", sample);
+      log.info("[AUDIT-TOOL] [traceId={}] requestExchange(orderId={}, userId={}) -> {}",
+          MDC.get("traceId"), orderId, userId, result);
+      return result;
+    } catch (RuntimeException exception) {
+      record("requestExchange", "fail", sample);
+      log.warn("[AUDIT-TOOL] [traceId={}] requestExchange(orderId={}, userId={}, reason={}) failed: {}",
           MDC.get("traceId"), orderId, userId, reason, exception.getMessage());
       throw exception;
     }
@@ -104,6 +134,18 @@ public class OrderTools {
       throw new IllegalArgumentException("ToolContext에 userId가 필요합니다.");
     }
     return userId;
+  }
+
+  private void markUsed(ToolContext context) {
+    if (context != null && context.getContext().get(ToolUsage.CONTEXT_KEY) instanceof ToolUsage usage) {
+      usage.markUsed();
+    }
+  }
+
+  private void markWriteUsed(ToolContext context) {
+    if (context != null && context.getContext().get(ToolUsage.CONTEXT_KEY) instanceof ToolUsage usage) {
+      usage.markWriteUsed();
+    }
   }
 
   private String required(String value, String name) {

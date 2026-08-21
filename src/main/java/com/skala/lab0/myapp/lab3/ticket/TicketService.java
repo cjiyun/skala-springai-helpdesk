@@ -22,6 +22,15 @@ public class TicketService {
 
   @Transactional
   public TicketView requestRefund(String orderId, String userId, String reason) {
+    return request(orderId, userId, TicketType.REFUND, reason);
+  }
+
+  @Transactional
+  public TicketView requestExchange(String orderId, String userId, String reason) {
+    return request(orderId, userId, TicketType.EXCHANGE, reason);
+  }
+
+  private TicketView request(String orderId, String userId, TicketType type, String reason) {
     String normalizedOrderId = required(orderId, "orderId");
     String normalizedUserId = required(userId, "userId");
     String normalizedReason = required(reason, "reason");
@@ -31,10 +40,12 @@ public class TicketService {
     Ticket ticket = tickets.save(new Ticket(
         UUID.randomUUID().toString(),
         normalizedOrderId,
-        normalizedUserId,
+        normalizedUserId, type,
         normalizedReason,
         Instant.now()));
-    return TicketView.from(ticket, "환불이 접수되었습니다. 담당자 승인 후 처리됩니다.");
+    return TicketView.from(ticket, type == TicketType.REFUND
+        ? "환불이 접수되었습니다. 담당자 승인 후 처리됩니다."
+        : "교환이 접수되었습니다. 담당자 승인 후 처리됩니다.");
   }
 
   @Transactional(readOnly = true)
@@ -49,7 +60,7 @@ public class TicketService {
     Ticket ticket = tickets.findById(ticketNo)
         .orElseThrow(() -> new TicketNotFoundException(ticketNo));
     ticket.approve(Instant.now());
-    return TicketView.from(ticket, "환불 티켓이 승인되었습니다.");
+    return TicketView.from(ticket, (ticket.getType() == TicketType.REFUND ? "환불" : "교환") + " 티켓이 승인되었습니다.");
   }
 
   private String required(String value, String name) {

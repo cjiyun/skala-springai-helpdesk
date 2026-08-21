@@ -5,28 +5,28 @@ import java.util.stream.Collectors;
 
 import jakarta.annotation.PostConstruct;
 import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.document.Document;
-import org.springframework.ai.reader.TextReader;
-import org.springframework.ai.transformer.splitter.TokenTextSplitter;
-import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.stereotype.Service;
 
 import com.skala.lab0.myapp.rag.dto.Lab2AnswerDto;
 import com.skala.lab0.myapp.rag.dto.Lab2ChunkResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class Lab2AnswerService {
+    private static final Logger log = LoggerFactory.getLogger(Lab2AnswerService.class);
 
     private final ChatClient chatClient;
     private final Lab2SearchService searchService;
-    private final VectorStore vectorStore;
+    private final Lab2IngestService ingestService;
 
-    public Lab2AnswerService(ChatClient.Builder chatClientBuilder, Lab2SearchService searchService, VectorStore vectorStore) {
+    public Lab2AnswerService(ChatClient.Builder chatClientBuilder, Lab2SearchService searchService,
+            Lab2IngestService ingestService) {
         this.chatClient = chatClientBuilder.build();
         this.searchService = searchService;
-        this.vectorStore = vectorStore;
+        this.ingestService = ingestService;
     }
 
     @PostConstruct
@@ -35,21 +35,13 @@ public class Lab2AnswerService {
             PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
             Resource[] resources = resolver.getResources("classpath*:lab2-docs/*.md");
             
-            // 문맥이 짤리지 않도록 청크 크기를 800 토큰으로 넉넉하게 설정
-            TokenTextSplitter splitter = TokenTextSplitter.builder()
-                    .withChunkSize(800)
-                    .withMinChunkSizeChars(100)
-                    .build();
-
             for (Resource resource : resources) {
                 if (resource.getFilename() != null && !resource.getFilename().contains("README")) {
-                    TextReader reader = new TextReader(resource);
-                    reader.getCustomMetadata().put("source", resource.getFilename());
-                    List<Document> docs = reader.get();
-                    vectorStore.accept(splitter.apply(docs));
+                    ingestService.ingest(resource, resource.getFilename(), "1");
                 }
             }
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+            log.warn("규정 문서 초기 적재에 실패했습니다: {}", exception.getMessage());
         }
     }
 

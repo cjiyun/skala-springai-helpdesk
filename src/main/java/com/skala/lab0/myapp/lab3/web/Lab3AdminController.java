@@ -15,9 +15,9 @@ import com.skala.lab0.myapp.lab3.ticket.TicketView;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/lab3/admin/tickets")
+@RequestMapping("/api/admin/tickets")
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Day3 실습 · 환불 승인")
+@Tag(name = "HelpDesk · 교환·환불 승인")
 public class Lab3AdminController {
   private final TicketService tickets;
 

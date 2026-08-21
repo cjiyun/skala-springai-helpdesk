@@ -42,12 +42,12 @@ class TicketPersistenceTest {
     assertThat(pending.getStatus()).isEqualTo(TicketStatus.PENDING);
     assertThat(pending.getApprovedAt()).isNull();
 
-    mvc.perform(get("/lab3/admin/tickets/pending")
+    mvc.perform(get("/api/admin/tickets/pending")
             .with(user("admin").roles("ADMIN")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$[?(@.ticketNo == '%s')]".formatted(requested.ticketNo())).exists());
 
-    mvc.perform(post("/lab3/admin/tickets/{ticketNo}/approve", requested.ticketNo())
+    mvc.perform(post("/api/admin/tickets/{ticketNo}/approve", requested.ticketNo())
             .with(user("admin").roles("ADMIN")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.status").value("APPROVED"));

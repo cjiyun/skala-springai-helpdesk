@@ -48,5 +48,11 @@ class Lab2IngestServiceTest {
         .containsExactlyInAnyOrder("policy", "membership");
     assertThat(stored).extracting(document -> document.getMetadata().get("version"))
         .containsExactlyInAnyOrder("2", "1");
+    assertThat(stored).allSatisfy(document -> {
+      assertThat(document.getMetadata())
+          .containsKeys("source", "title", "version", "docType", "dept")
+          .containsEntry("docType", "POLICY")
+          .containsEntry("dept", "HELPDESK");
+    });
   }
 }

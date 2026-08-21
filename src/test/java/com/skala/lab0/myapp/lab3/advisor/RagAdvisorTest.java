@@ -1,6 +1,6 @@
 package com.skala.lab0.myapp.lab3.advisor;
 
-import com.skala.lab0.myapp.lab3.chat.Lab3ChatResponse;
+import com.skala.lab0.myapp.lab3.chat.AnswerDto;
 import com.skala.lab0.myapp.lab3.chat.Lab3ChatService;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
@@ -24,14 +24,25 @@ class RagAdvisorTest {
         String sessionId = "session-rag-test";
         String question = "단순 변심 반품은 며칠 이내인가요?";
 
-        Lab3ChatResponse response = chatService.chat(userId, sessionId, question);
+        AnswerDto response = chatService.chat(userId, sessionId, question);
 
         log.info("[RAG 검증] 질문: {}", question);
         log.info("[RAG 검증] 답변: {}", response.answer());
 
-        // 1. 규정 핵심 키워드 및 출처 텍스트 포함 검증
-        assertThat(response.answer())
-                .contains("7일")
-                .contains("return-policy.md");
+        assertThat(response.answer()).contains("7일");
+        assertThat(response.sources()).anySatisfy(source -> {
+            assertThat(source.document()).isEqualTo("return-policy.md");
+            assertThat(source.version()).isNotBlank();
+        });
+    }
+
+    @Test
+    @DisplayName("검색_근거가_없으면_추측하지_않는다")
+    void 근거_없음_검증() {
+        AnswerDto response = chatService.chat("user1", "session-no-evidence",
+                "화성 탐사 우주복 지급 규정을 알려줘");
+
+        assertThat(response.answer()).isEqualTo("관련 사내 규정 근거가 확인되지 않습니다.");
+        assertThat(response.sources()).isEmpty();
     }
 }
