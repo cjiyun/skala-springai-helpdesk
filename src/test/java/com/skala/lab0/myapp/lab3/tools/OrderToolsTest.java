@@ -11,7 +11,10 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
@@ -23,6 +26,7 @@ import com.skala.lab0.myapp.order.domain.OrderStatus;
 import com.skala.lab0.myapp.order.repository.OrderRepository;
 import com.skala.lab0.myapp.order.service.OrderNotFoundException;
 
+@ExtendWith(OutputCaptureExtension.class)
 class OrderToolsTest {
   private OrderRepository orders;
   private TicketService tickets;
@@ -98,6 +102,30 @@ class OrderToolsTest {
 
     assertThat(result.status()).isEqualTo("PENDING");
     verify(tickets).requestRefund("12345", "user1", "단순 변심");
+  }
+
+  @Test
+  void 티켓_상태_조회에도_ToolContext의_사용자만_전달한다() {
+    TicketView pending = new TicketView("T1", "12345", "EXCHANGE", "PENDING", "승인 대기");
+    when(tickets.latestForOrder("12345", "user1")).thenReturn(pending);
+
+    TicketView result = tools.getTicketStatus("12345", context("user1"));
+
+    assertThat(result.status()).isEqualTo("PENDING");
+    verify(tickets).latestForOrder("12345", "user1");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "getTicketStatus").tag("result", "ok").counter().count()).isEqualTo(1);
+  }
+
+  @Test
+  void Tool_감사_로그에_접수_사유_원문을_남기지_않는다(CapturedOutput output) {
+    String sensitiveReason = "카드 4111-1111-1111-1111 분실";
+    when(tickets.requestRefund("12345", "user1", sensitiveReason))
+        .thenReturn(new TicketView("T1", "12345", "REFUND", "PENDING", "승인 대기"));
+
+    tools.requestRefund("12345", sensitiveReason, context("user1"));
+
+    assertThat(output).contains("tool=requestRefund result=ok").doesNotContain(sensitiveReason);
   }
 
   @Test

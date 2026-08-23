@@ -33,9 +33,16 @@ public class TicketService {
   private TicketView request(String orderId, String userId, TicketType type, String reason) {
     String normalizedOrderId = required(orderId, "orderId");
     String normalizedUserId = required(userId, "userId");
-    String normalizedReason = required(reason, "reason");
-    orders.findByIdAndOwnerId(normalizedOrderId, normalizedUserId)
+    String normalizedReason = reason == null || reason.isBlank() ? "사용자 요청" : reason.trim();
+    orders.findOwnedByIdForUpdate(normalizedOrderId, normalizedUserId)
         .orElseThrow(() -> new OrderNotFoundException(orderId));
+
+    var existing = tickets.findFirstByOrderIdAndUserIdAndTypeAndStatus(
+        normalizedOrderId, normalizedUserId, type, TicketStatus.PENDING);
+    if (existing.isPresent()) {
+      return TicketView.from(existing.get(),
+          "이미 승인 대기 중인 " + (type == TicketType.REFUND ? "환불" : "교환") + " 티켓입니다.");
+    }
 
     Ticket ticket = tickets.save(new Ticket(
         UUID.randomUUID().toString(),
@@ -53,6 +60,20 @@ public class TicketService {
     return tickets.findByStatusOrderByCreatedAtAsc(TicketStatus.PENDING).stream()
         .map(ticket -> TicketView.from(ticket, "승인 대기 중입니다."))
         .toList();
+  }
+
+  @Transactional(readOnly = true)
+  public TicketView latestForOrder(String orderId, String userId) {
+    String normalizedOrderId = required(orderId, "orderId");
+    String normalizedUserId = required(userId, "userId");
+    orders.findByIdAndOwnerId(normalizedOrderId, normalizedUserId)
+        .orElseThrow(() -> new OrderNotFoundException(normalizedOrderId));
+    Ticket ticket = tickets.findFirstByOrderIdAndUserIdOrderByCreatedAtDesc(
+            normalizedOrderId, normalizedUserId)
+        .orElseThrow(() -> new TicketNotFoundException(normalizedOrderId));
+    return TicketView.from(ticket, ticket.getStatus() == TicketStatus.PENDING
+        ? "담당자 승인 대기 중입니다."
+        : "관리자 승인이 완료되었습니다.");
   }
 
   @Transactional
