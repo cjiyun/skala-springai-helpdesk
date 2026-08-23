@@ -5,9 +5,9 @@
 | 단계 | 결과 | 검증 근거 |
 |---|---|---|
 | 0. 기준선 | 통과 | `compileTestJava`, `scripts/test-non-llm.sh`, LLM 테스트 분리 |
-| 1. API·도메인 계약 | 통과 | `Lab3ChatControllerTest`, `Lab3AdminControllerTest` |
+| 1. API·도메인 계약 | 통과 | `ChatControllerTest`, `AdminControllerTest` |
 | 2. 주문·티켓 Tool | 통과 | 주문·최신 티켓 조회, 소유권 검증, 기본 사유, PENDING 재사용, 동시 요청 1건, 승인 후 재접수 테스트 |
-| 3. 인제스트·검색 | 통과 | `Lab2IngestServiceTest`, `Lab2SearchServiceTest`, `Lab3ChunkAdminControllerTest`; PGVector Compose 구성 확인 |
+| 3. 인제스트·검색 | 통과 | `IngestServiceTest`, `SearchServiceTest`, `ChunkAdminControllerTest`; PGVector Compose 구성 확인 |
 | 4. RAG·출처 | 통과 | `RagAdvisorTest` 강제 재실행 성공: 관련 문서 출처와 무관 질문 빈 출처 검증 |
 | 5. JDBC 메모리 | 통과 | `JdbcChatMemoryRepositoryTest`: 20개 제한, 사용자·세션 격리, Tool 호출·응답 복원 |
 | 6. 안전·감사 | 통과 | 동기·SSE 선차단, 정상 정책 질문 허용, 메모리·로그 비보존, 레드팀 10/10 |
@@ -25,8 +25,8 @@
 GRADLE_USER_HOME="$PWD/.gradle" ./gradlew --no-daemon \
   -Dorg.gradle.jvmargs= test \
   --rerun-tasks \
-  --tests 'com.skala.lab0.myapp.lab3.Lab3MultiTurnScenarioTest' \
-  --tests 'com.skala.lab0.myapp.lab3.advisor.RagAdvisorTest' \
+  --tests 'com.skala.helpdesk.MultiTurnScenarioTest' \
+  --tests 'com.skala.helpdesk.advisor.RagAdvisorTest' \
   --console=plain
 
 SAMPLES=20 MAX_AVG_TOKENS=2000 ./scripts/measure-chat.sh
@@ -39,5 +39,5 @@ SAMPLES=20 MAX_AVG_TOKENS=2000 ./scripts/measure-chat.sh
 - 실제 SSE 호출에서 토큰 순차 전송, 마지막 `sources`, 정상 종료를 확인했다.
 - 티켓 조회 시나리오를 포함한 LLM 통합 테스트 9개를 유효한 API 키와 `--rerun-tasks`로 실행해 모두 통과했다.
 - IDE Problems 창은 CLI로 검증할 수 없으므로 IDE에서 마지막으로 확인한다.
-- 기존 Lab1/Lab2 코드는 교육 단계 산출물이므로 임의 삭제하지 않았다.
+- 기존 단계별 기능은 삭제하지 않고 최종 역할 기반 패키지 구조에 통합했다.
 - 제출용 보고서와 캡처 산출물은 애플리케이션 소스와 분리하여 관리한다.

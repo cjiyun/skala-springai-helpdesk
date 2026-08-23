@@ -8,8 +8,8 @@ An AI-powered helpdesk built with Spring AI for order support and policy-based Q
 ```bash
 export OPENAI_API_KEY='...'
 # 선택: 기본값은 user/admin
-export LAB3_USER_PASSWORD='user'
-export LAB3_ADMIN_PASSWORD='admin'
+export HELPDESK_USER_PASSWORD='user'
+export HELPDESK_ADMIN_PASSWORD='admin'
 ```
 
 PGVector와 애플리케이션을 순서대로 실행합니다.
@@ -19,7 +19,7 @@ docker compose -f src/main/resources/docker-compose.yml up -d
 GRADLE_USER_HOME="$PWD/.gradle" ./gradlew bootRun --console=plain
 ```
 
-`Started MyappApplication`이 출력되면 `http://127.0.0.1:8080`에서 요청을 받습니다.
+`Started HelpDeskApplication`이 출력되면 `http://127.0.0.1:8080`에서 요청을 받습니다.
 기본 상담 계정은 `user1/user`입니다. 종료 후 DB 컨테이너는 다음 명령으로 내립니다.
 
 브라우저에서 `http://127.0.0.1:8080/`을 열면 SSE 채팅 화면을 사용할 수 있습니다.
@@ -43,14 +43,14 @@ API 키 없이 컴파일과 단위·DB·안전·SSE·폴백 테스트를 실행�
 ```bash
 GRADLE_USER_HOME="$PWD/.gradle" ./gradlew test \
   --rerun-tasks \
-  --tests 'com.skala.lab0.myapp.lab3.Lab3MultiTurnScenarioTest' \
-  --tests 'com.skala.lab0.myapp.lab3.advisor.RagAdvisorTest' \
+  --tests 'com.skala.helpdesk.MultiTurnScenarioTest' \
+  --tests 'com.skala.helpdesk.advisor.RagAdvisorTest' \
   --console=plain
 ```
 
 ## RAG 검색 설정
 
-Lab3의 `helpdesk.rag.top-k`는 고정값이 아니라 조정 가능한 검색 폭입니다. 현재 기본값은
+HelpDesk의 `helpdesk.rag.top-k`는 고정값이 아니라 조정 가능한 검색 폭입니다. 현재 기본값은
 `2`, 유사도 임계값은 `0.29`입니다. 실제 재인제스트 환경에서 관련 질문 점수(`0.334`)는
 유지하고 일반적인 무관 질문의 최대 점수(`0.283`)는 제외하도록 조정했습니다. 이 설정에서 RAG·멀티턴 테스트와 성능·토큰 기준을
 통과했으므로 과제 자료의 예시값 `5` 대신 유지합니다. 더 넓은 검색이 필요한 환경에서는

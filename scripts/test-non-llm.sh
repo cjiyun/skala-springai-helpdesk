@@ -8,16 +8,16 @@ fi
 
 GRADLE_USER_HOME="${GRADLE_USER_HOME:-$PWD/.gradle}" ./gradlew --no-daemon -Dorg.gradle.jvmargs= \
   compileTestJava test "${gradle_args[@]}" \
-  --tests 'com.skala.lab0.myapp.MyappApplicationTests' \
-  --tests 'com.skala.lab0.myapp.rag.service.Lab2IngestServiceTest' \
-  --tests 'com.skala.lab0.myapp.rag.service.Lab2SearchServiceTest' \
-  --tests 'com.skala.lab0.myapp.lab3.advisor.RagAdvisorContextTest' \
-  --tests 'com.skala.lab0.myapp.lab3.advisor.AdvisorOrderTest' \
-  --tests 'com.skala.lab0.myapp.lab3.advisor.SafetyAdvisorTest' \
-  --tests 'com.skala.lab0.myapp.lab3.advisor.TokenMeterAdvisorTest' \
-  --tests 'com.skala.lab0.myapp.lab3.redteam.RedTeamDefenseTest' \
-  --tests 'com.skala.lab0.myapp.lab3.chat.*' \
-  --tests 'com.skala.lab0.myapp.lab3.ticket.*' \
-  --tests 'com.skala.lab0.myapp.lab3.tools.*' \
-  --tests 'com.skala.lab0.myapp.lab3.web.*' \
+  --tests 'com.skala.helpdesk.HelpDeskApplicationTests' \
+  --tests 'com.skala.helpdesk.rag.IngestServiceTest' \
+  --tests 'com.skala.helpdesk.rag.SearchServiceTest' \
+  --tests 'com.skala.helpdesk.advisor.RagAdvisorContextTest' \
+  --tests 'com.skala.helpdesk.advisor.AdvisorOrderTest' \
+  --tests 'com.skala.helpdesk.advisor.SafetyAdvisorTest' \
+  --tests 'com.skala.helpdesk.advisor.TokenMeterAdvisorTest' \
+  --tests 'com.skala.helpdesk.redteam.RedTeamDefenseTest' \
+  --tests 'com.skala.helpdesk.chat.*' \
+  --tests 'com.skala.helpdesk.service.*' \
+  --tests 'com.skala.helpdesk.tools.*' \
+  --tests 'com.skala.helpdesk.web.*' \
   --console=plain

@@ -50,9 +50,9 @@ A에서 관련 질문 8개에 반환된 청크는 총 21개였고, D에서는 35
 
 실험일: 2026-08-19.
 
-## Lab3 HelpDesk 최종 설정
+## HelpDesk 최종 설정
 
-위 A~F는 Lab2 검색 API의 실험이며 Lab3 상담 RAG의 최종 설정과는 별개다. Lab3는
+위 A~F는 Lab2 검색 API의 실험이며 HelpDesk 상담 RAG의 최종 설정과는 별개다. HelpDesk는
 `helpdesk.rag.top-k=2`, `helpdesk.rag.threshold=0.29`를 사용한다. 과제 자료의 `top-k=5`,
 `threshold=0.62`는 예시값이며, 실제 재인제스트 후 `0.62`에서 관련 질문까지 빈 결과가 된 것을 확인했다.
 설정 예시로 보고 고정값으로 사용하지 않았다.

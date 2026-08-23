@@ -4,7 +4,7 @@ set -euo pipefail
 base_url="${HELPDESK_URL:-http://127.0.0.1:8080}"
 samples="${SAMPLES:-20}"
 user="${HELPDESK_USER:-user1}"
-password="${LAB3_USER_PASSWORD:-user}"
+password="${HELPDESK_USER_PASSWORD:-user}"
 max_tokens="${MAX_AVG_TOKENS:-2000}"
 
 case "$samples" in *[!0-9]*|0) echo "SAMPLES must be a positive integer" >&2; exit 2;; esac

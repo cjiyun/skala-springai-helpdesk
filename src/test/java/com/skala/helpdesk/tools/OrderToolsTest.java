@@ -1,0 +1,169 @@
+package com.skala.helpdesk.tools;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Map;
+import java.util.Optional;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.ai.chat.model.ToolContext;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+
+import com.skala.helpdesk.dto.OrderView;
+import com.skala.helpdesk.service.TicketService;
+import com.skala.helpdesk.dto.TicketView;
+import com.skala.helpdesk.domain.Order;
+import com.skala.helpdesk.domain.OrderStatus;
+import com.skala.helpdesk.repository.OrderRepository;
+import com.skala.helpdesk.service.OrderNotFoundException;
+
+@ExtendWith(OutputCaptureExtension.class)
+class OrderToolsTest {
+  private OrderRepository orders;
+  private TicketService tickets;
+  private OrderTools tools;
+  private TicketTools ticketTools;
+  private SimpleMeterRegistry meterRegistry;
+
+  @BeforeEach
+  void setUp() {
+    orders = mock(OrderRepository.class);
+    tickets = mock(TicketService.class);
+    meterRegistry = new SimpleMeterRegistry();
+    tools = new OrderTools(orders, meterRegistry);
+    ticketTools = new TicketTools(tickets, meterRegistry);
+  }
+
+  @Test
+  void ToolContext의_사용자로_본인_주문을_조회한다() {
+    when(orders.findByIdAndOwnerId("12345", "user1"))
+        .thenReturn(Optional.of(order("12345", "user1")));
+
+    OrderView result = tools.getOrder("12345", context("user1"));
+
+    assertThat(result.orderId()).isEqualTo("12345");
+    assertThat(result.status()).isEqualTo("배송 중");
+    verify(orders).findByIdAndOwnerId("12345", "user1");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "getOrder")
+        .tag("result", "ok")
+        .counter().count()).isEqualTo(1);
+  }
+
+  @Test
+  void 다른_사용자의_주문은_찾을_수_없다() {
+    when(orders.findByIdAndOwnerId("99999", "user1")).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tools.getOrder("99999", context("user1")))
+        .isInstanceOf(OrderNotFoundException.class);
+    verify(orders).findByIdAndOwnerId("99999", "user1");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "getOrder")
+        .tag("result", "fail")
+        .counter().count()).isEqualTo(1);
+  }
+
+  @Test
+  void 질문의_사용자_ID가_아닌_ToolContext만_신뢰한다() {
+    when(orders.findByIdAndOwnerId("user2-99999", "user1")).thenReturn(Optional.empty());
+
+    assertThatThrownBy(() -> tools.getOrder("user2-99999", context("user1")))
+        .isInstanceOf(OrderNotFoundException.class);
+    verify(orders).findByIdAndOwnerId("user2-99999", "user1");
+  }
+
+  @Test
+  void ToolContext에_사용자가_없으면_도구를_실행하지_않는다() {
+    assertThatThrownBy(() -> tools.getOrder("12345", new ToolContext(Map.of())))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("userId");
+  }
+
+  @Test
+  void 주문번호가_없으면_도구를_실행하지_않는다() {
+    assertThatThrownBy(() -> tools.getOrder(" ", context("user1")))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("orderId");
+  }
+
+  @Test
+  void 환불_접수에도_ToolContext의_사용자를_전달한다() {
+    TicketView pending = new TicketView("T1", "12345", "REFUND", "PENDING", "승인 대기");
+    when(tickets.requestRefund("12345", "user1", "단순 변심")).thenReturn(pending);
+
+    TicketView result = ticketTools.requestRefund("12345", "단순 변심", context("user1"));
+
+    assertThat(result.status()).isEqualTo("PENDING");
+    verify(tickets).requestRefund("12345", "user1", "단순 변심");
+  }
+
+  @Test
+  void 티켓_상태_조회에도_ToolContext의_사용자만_전달한다() {
+    TicketView pending = new TicketView("T1", "12345", "EXCHANGE", "PENDING", "승인 대기");
+    when(tickets.latestForOrder("12345", "user1")).thenReturn(pending);
+
+    TicketView result = ticketTools.getTicketStatus("12345", context("user1"));
+
+    assertThat(result.status()).isEqualTo("PENDING");
+    verify(tickets).latestForOrder("12345", "user1");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "getTicketStatus").tag("result", "ok").counter().count()).isEqualTo(1);
+  }
+
+  @Test
+  void Tool_감사_로그에_접수_사유_원문을_남기지_않는다(CapturedOutput output) {
+    String sensitiveReason = "카드 4111-1111-1111-1111 분실";
+    when(tickets.requestRefund("12345", "user1", sensitiveReason))
+        .thenReturn(new TicketView("T1", "12345", "REFUND", "PENDING", "승인 대기"));
+
+    ticketTools.requestRefund("12345", sensitiveReason, context("user1"));
+
+    assertThat(output).contains("tool=requestRefund result=ok").doesNotContain(sensitiveReason);
+  }
+
+  @Test
+  void 실제_도구_실행을_ToolContext에_기록한다() {
+    when(orders.findByIdAndOwnerId("12345", "user1"))
+        .thenReturn(Optional.of(order("12345", "user1")));
+    ToolUsage usage = new ToolUsage();
+
+    tools.getOrder("12345", new ToolContext(Map.of("userId", "user1", ToolUsage.CONTEXT_KEY, usage)));
+
+    assertThat(usage.wasUsed()).isTrue();
+  }
+
+  @Test
+  void 교환_접수는_EXCHANGE와_ToolContext_사용자를_전달하고_쓰기_호출을_기록한다() {
+    TicketView pending = new TicketView("T2", "12345", "EXCHANGE", "PENDING", "승인 대기");
+    when(tickets.requestExchange("12345", "user1", "색상 변경")).thenReturn(pending);
+    ToolUsage usage = new ToolUsage();
+
+    TicketView result = ticketTools.requestExchange("12345", "색상 변경",
+        new ToolContext(Map.of("userId", "user1", ToolUsage.CONTEXT_KEY, usage)));
+
+    assertThat(result.type()).isEqualTo("EXCHANGE");
+    assertThat(result.status()).isEqualTo("PENDING");
+    assertThat(usage.wasUsed()).isTrue();
+    assertThat(usage.wasWriteUsed()).isTrue();
+    verify(tickets).requestExchange("12345", "user1", "색상 변경");
+    assertThat(meterRegistry.get("ai.tool.calls")
+        .tag("tool", "requestExchange").tag("result", "ok").counter().count()).isEqualTo(1);
+  }
+
+  private ToolContext context(String userId) {
+    return new ToolContext(Map.of("userId", userId));
+  }
+
+  private Order order(String id, String ownerId) {
+    return new Order(id, ownerId, "무선 이어폰", "2026-08-20", OrderStatus.SHIPPING);
+  }
+}
