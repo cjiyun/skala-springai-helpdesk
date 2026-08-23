@@ -164,6 +164,30 @@ class ChatControllerTest {
   }
 
   @Test
+  void stream은_일반_문장_뒤에_온_근거_없음_마커도_노출하지_않는다() throws Exception {
+    Document unrelated = new Document("무관한 문서", Map.of(
+        "source", "shipping-policy.md", "version", "1.0"));
+    Flux<ChatClientResponse> responses = Flux.just(
+        response("제공된 문서에서 확인할 수 없습니다. NO_", List.of(unrelated), true),
+        response("EVIDENCE", List.of(unrelated), true));
+    when(chatService.stream(org.mockito.ArgumentMatchers.eq("user1"),
+        org.mockito.ArgumentMatchers.eq("s1"), org.mockito.ArgumentMatchers.eq("그 주문은 반품할 수 있어?"),
+        any(ToolUsage.class))).thenReturn(responses);
+
+    MvcResult pending = mvc.perform(post("/api/chat/stream").with(user("user1").roles("USER"))
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{\"sessionId\":\"s1\",\"question\":\"그 주문은 반품할 수 있어?\"}"))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    String body = mvc.perform(asyncDispatch(pending)).andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+    assertThat(body).contains("제공된 문서에서 확인할 수 없습니다.")
+        .doesNotContain("NO_EVIDENCE", "shipping-policy.md");
+    assertThat(body).contains("event:sources", "data:[]");
+  }
+
+  @Test
   void stream은_검색_결과가_비면_모델의_추측_답변을_내보내지_않는다() throws Exception {
     ChatClientResponse hallucination = response("아마 상승했을 것입니다.", List.of(), true);
     when(chatService.stream(org.mockito.ArgumentMatchers.eq("user1"),

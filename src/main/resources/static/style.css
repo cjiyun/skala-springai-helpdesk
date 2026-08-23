@@ -14,5 +14,6 @@ button.secondary { background: #687386; }
 button:disabled { cursor: not-allowed; opacity: .55; }
 #status { color: #536078; }
 #answer { min-height: 48px; white-space: pre-wrap; line-height: 1.6; }
-#sources { padding-left: 20px; }
+#sources, #history { padding-left: 20px; }
+#history li { margin-top: 8px; white-space: pre-wrap; }
 @media (max-width: 640px) { .row { grid-template-columns: 1fr; } }

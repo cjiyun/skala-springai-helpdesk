@@ -22,6 +22,7 @@
       <div class="actions">
         <button type="submit">전송</button>
         <button type="button" id="cancel" class="secondary" disabled>중지</button>
+        <button type="button" id="load-history" class="secondary">대화 이력 조회</button>
       </div>
     </form>
 
@@ -34,6 +35,12 @@
     <section aria-labelledby="sources-title">
       <h2 id="sources-title">출처</h2>
       <ul id="sources"><li>출처가 아직 없습니다.</li></ul>
+    </section>
+
+    <section aria-labelledby="history-title">
+      <h2 id="history-title">대화 이력</h2>
+      <p id="history-status" role="status" aria-live="polite">조회할 세션 ID를 입력해 주세요.</p>
+      <ul id="history"><li>조회된 대화가 없습니다.</li></ul>
     </section>
   </main>
   <script src="/app.js" defer></script>

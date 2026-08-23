@@ -136,7 +136,7 @@ public class ChatController {
             private List<Source> sources = List.of();
             private boolean ragAttempted;
             private boolean noEvidence;
-            private boolean passthrough;
+            private boolean tokenSent;
 
             void updateContext(Map<String, Object> context) {
                 ragAttempted |= Boolean.TRUE.equals(context.get(RagAdvisor.RAG_ATTEMPTED));
@@ -153,27 +153,26 @@ public class ChatController {
 
             void sendToken(String token, SseEmitter emitter) throws IOException {
                 if (token == null || token.isEmpty() || noEvidence) return;
-                if (passthrough) {
-                    send(emitter, token);
-                    return;
-                }
                 pending.append(token);
                 String buffered = pending.toString();
-                String normalized = buffered.strip();
-                if (buffered.contains(HelpDeskService.NO_EVIDENCE_MARKER)) {
+                int markerAt = buffered.indexOf(HelpDeskService.NO_EVIDENCE_MARKER);
+                if (markerAt >= 0) {
+                    if (markerAt > 0) send(emitter, buffered.substring(0, markerAt));
                     noEvidence = true;
                     pending.setLength(0);
-                } else if (!HelpDeskService.NO_EVIDENCE_MARKER.startsWith(normalized)) {
-                    passthrough = true;
-                    send(emitter, buffered);
-                    pending.setLength(0);
+                    return;
                 }
+
+                int retained = markerPrefixSuffixLength(buffered);
+                int safeLength = buffered.length() - retained;
+                if (safeLength > 0) send(emitter, buffered.substring(0, safeLength));
+                pending.delete(0, safeLength);
             }
 
             void complete(SseEmitter emitter) throws IOException {
                 noEvidence |= ragAttempted && sources.isEmpty();
                 if (noEvidence) {
-                    send(emitter, HelpDeskService.NO_EVIDENCE_REPLY);
+                    if (!tokenSent) send(emitter, HelpDeskService.NO_EVIDENCE_REPLY);
                     sources = List.of();
                 } else if (!pending.isEmpty()) {
                     send(emitter, pending.toString());
@@ -183,7 +182,18 @@ public class ChatController {
             }
 
             private void send(SseEmitter emitter, String token) throws IOException {
+                if (token.isEmpty()) return;
                 emitter.send(SseEmitter.event().name("token").data(token));
+                tokenSent = true;
+            }
+
+            private int markerPrefixSuffixLength(String text) {
+                String marker = HelpDeskService.NO_EVIDENCE_MARKER;
+                int limit = Math.min(text.length(), marker.length() - 1);
+                for (int length = limit; length > 0; length--) {
+                    if (text.regionMatches(text.length() - length, marker, 0, length)) return length;
+                }
+                return 0;
             }
         }
 }

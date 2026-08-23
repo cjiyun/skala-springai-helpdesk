@@ -3,6 +3,9 @@ const answer = document.querySelector('#answer');
 const sources = document.querySelector('#sources');
 const status = document.querySelector('#status');
 const cancel = document.querySelector('#cancel');
+const loadHistory = document.querySelector('#load-history');
+const history = document.querySelector('#history');
+const historyStatus = document.querySelector('#history-status');
 let activeRequest;
 
 form.addEventListener('submit', async event => {
@@ -38,6 +41,23 @@ form.addEventListener('submit', async event => {
 });
 
 cancel.addEventListener('click', () => activeRequest?.abort());
+
+loadHistory.addEventListener('click', async () => {
+  historyStatus.textContent = '대화 이력을 조회하는 중입니다…';
+  try {
+    const credentials = `${value('username')}:${value('password')}`;
+    const sessionId = encodeURIComponent(value('session'));
+    const response = await fetch(`/api/chat/history?sessionId=${sessionId}`, {
+      headers: { 'Authorization': `Basic ${base64(credentials)}` }
+    });
+    if (!response.ok) throw new Error(`이력 조회 실패 (${response.status})`);
+    showHistory((await response.json()).history || []);
+    historyStatus.textContent = '대화 이력을 조회했습니다.';
+  } catch (error) {
+    showHistory([]);
+    historyStatus.textContent = error.message;
+  }
+});
 
 async function readEvents(body) {
   const reader = body.getReader();
@@ -80,6 +100,16 @@ function showSources(items) {
     const item = document.createElement('li');
     item.textContent = `${source.document} (${source.version})`;
     sources.append(item);
+  });
+}
+
+function showHistory(messages) {
+  history.replaceChildren();
+  const items = messages.length ? messages : ['조회된 대화가 없습니다.'];
+  items.forEach(message => {
+    const item = document.createElement('li');
+    item.textContent = message;
+    history.append(item);
   });
 }
 
