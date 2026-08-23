@@ -7,40 +7,60 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <main>
-    <h1>SKALA HelpDesk AI</h1>
-    <p class="subtitle">사내 규정과 주문 정보를 함께 확인하는 상담 도우미</p>
-
-    <form id="chat-form">
-      <div class="row">
-        <label>사용자명 <input id="username" value="user1" autocomplete="username" required></label>
-        <label>비밀번호 <input id="password" type="password" autocomplete="current-password" required></label>
-        <label>세션 ID <input id="session" value="web-session-1" required></label>
+  <main class="app-shell">
+    <aside class="sidebar" aria-label="상담 설정">
+      <div>
+        <h1>SKALA HelpDesk AI</h1>
+        <p class="subtitle">규정과 주문을 한 곳에서 확인하세요.</p>
       </div>
-      <label for="question">질문</label>
-      <textarea id="question" rows="3" placeholder="예: 반품 규정 알려줘" required></textarea>
-      <div class="actions">
-        <button type="submit">전송</button>
-        <button type="button" id="cancel" class="secondary" disabled>중지</button>
-        <button type="button" id="load-history" class="secondary">대화 이력 조회</button>
+      <button type="button" id="new-session" class="new-chat">＋ 새 대화</button>
+      <nav class="recent-sessions" aria-label="최근 대화">
+        <strong>최근 대화</strong>
+        <div id="session-list"></div>
+      </nav>
+      <button type="button" id="delete-session" class="delete-chat">현재 대화 삭제</button>
+    </aside>
+
+    <section class="workspace" aria-label="상담 대화">
+      <input type="hidden" id="session">
+      <header class="workspace-header">
+        <div>
+          <h2 id="session-title">새 상담</h2>
+          <p>사내 문서와 인증된 주문 정보를 기준으로 답변합니다.</p>
+        </div>
+        <div class="header-actions">
+          <span id="auth-state" class="online pending"><span></span>로그인 필요</span>
+          <button type="button" id="load-history" class="text-button">이력 새로고침</button>
+          <details class="settings">
+            <summary>설정</summary>
+            <div class="settings-panel">
+              <label>사용자명 <input id="username" value="user1" autocomplete="username" required></label>
+              <label>비밀번호 <input id="password" type="password" autocomplete="current-password" required></label>
+              <div class="login-actions">
+                <button type="button" id="login">로그인</button>
+                <button type="button" id="logout" class="secondary">로그아웃</button>
+              </div>
+              <p id="auth-status" class="muted" role="status" aria-live="polite">로그인이 필요합니다.</p>
+            </div>
+          </details>
+        </div>
+      </header>
+
+      <div id="history" class="conversation" aria-live="polite">
+        <div class="empty-state">질문을 보내거나 이전 대화를 불러오세요.</div>
       </div>
-    </form>
 
-    <section aria-labelledby="answer-title">
-      <h2 id="answer-title">답변</h2>
-      <p id="status" role="status" aria-live="polite">질문을 입력해 주세요.</p>
-      <div id="answer" aria-live="polite"></div>
-    </section>
+      <p id="status" class="status" role="status" aria-live="polite">질문을 입력해 주세요.</p>
 
-    <section aria-labelledby="sources-title">
-      <h2 id="sources-title">출처</h2>
-      <ul id="sources"><li>출처가 아직 없습니다.</li></ul>
-    </section>
-
-    <section aria-labelledby="history-title">
-      <h2 id="history-title">대화 이력</h2>
-      <p id="history-status" role="status" aria-live="polite">조회할 세션 ID를 입력해 주세요.</p>
-      <ul id="history"><li>조회된 대화가 없습니다.</li></ul>
+      <form id="chat-form" class="composer">
+        <label class="sr-only" for="question">질문</label>
+        <textarea id="question" rows="1" placeholder="HelpDesk AI에 메시지 보내기" required></textarea>
+        <div class="actions">
+          <span>Enter로 전송 · Shift+Enter로 줄바꿈</span>
+          <button type="button" id="cancel" class="secondary" disabled>중지</button>
+          <button type="submit" aria-label="메시지 전송">전송</button>
+        </div>
+      </form>
     </section>
   </main>
   <script src="/app.js" defer></script>

@@ -27,7 +27,10 @@ class WebUiTest {
         .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
     assertThat(html).contains("SKALA HelpDesk AI", "id=\"session\"", "id=\"question\"",
-        "id=\"load-history\"", "id=\"history\"", "role=\"status\"", "src=\"/app.js\"");
+        "id=\"new-session\"", "id=\"load-history\"", "id=\"delete-session\"",
+        "id=\"login\"", "id=\"logout\"", "id=\"history\"", "role=\"status\"", "src=\"/app.js\"")
+        .contains("type=\"hidden\" id=\"session\"", "id=\"auth-status\"")
+        .doesNotContain("<label>세션 ID", "id=\"history-status\"");
   }
 
   @Test
@@ -48,7 +51,19 @@ class WebUiTest {
         .andExpect(status().isOk())
         .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
 
-    assertThat(script).contains("fetch(`/api/chat/history?sessionId=${sessionId}`",
-        "'Authorization': `Basic ${base64(credentials)}`", "showHistory");
+    assertThat(script).contains("fetch(`/api/chat/history?sessionId=${encodeURIComponent(sessionId)}`",
+        "fetch('/api/auth/login'", "fetch('/api/auth/logout'", "showHistory", "method: 'DELETE'",
+        "localStorage.setItem", "createSessionId()", "className = 'tool-card'")
+        .doesNotContain("web-session-1", "localStorage.setItem('password'", "authorization()");
+  }
+
+  @Test
+  void 데스크톱에서는_대화_영역만_독립적으로_스크롤한다() throws Exception {
+    String style = mvc.perform(get("/style.css"))
+        .andExpect(status().isOk())
+        .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+    assertThat(style).contains(".app-shell {", "height: 100vh", "overflow: hidden",
+        ".conversation {", "overflow-y: auto");
   }
 }

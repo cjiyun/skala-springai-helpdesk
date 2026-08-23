@@ -24,7 +24,10 @@ GRADLE_USER_HOME="$PWD/.gradle" ./gradlew bootRun --console=plain
 
 브라우저에서 `http://127.0.0.1:8080/`을 열면 SSE 채팅 화면을 사용할 수 있습니다.
 화면에서 사용할 기본 개발용 계정은 `user1/user`이며 애플리케이션 코드가 자격증명을 저장하지 않습니다.
-Basic 인증은 운영 환경에서 반드시 HTTPS와 함께 사용해야 합니다.
+Web UI는 사용자·AI 메시지와 Tool 실행 상태를 구분해 표시하며, 최근 세션 불러오기·새 대화·세션 삭제를 지원합니다.
+대화 이력 API는 `role`, `content`, `toolName`, `status`로 구조화된 메시지를 반환합니다.
+Web UI 로그인 후에는 `HttpOnly` 서버 세션 쿠키를 사용하므로 새로고침할 때 비밀번호를 다시 입력하지 않습니다.
+CLI 호환성을 위한 Basic 인증도 유지하며 운영 환경에서는 반드시 HTTPS를 적용해야 합니다.
 
 ```bash
 docker compose -f src/main/resources/docker-compose.yml down

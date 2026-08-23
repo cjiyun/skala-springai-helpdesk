@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.http.MediaType;
 
 @Configuration
 @EnableMethodSecurity
@@ -18,9 +19,28 @@ public class SecurityConfig {
     return http
         .csrf(csrf -> csrf.ignoringRequestMatchers("/api/**"))
         .authorizeHttpRequests(requests -> requests
+            .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/api/chat/**", "/api/admin/**").authenticated()
             .anyRequest().permitAll())
-        .httpBasic(basic -> {})
+        .formLogin(form -> form
+            .loginProcessingUrl("/api/auth/login")
+            .successHandler((request, response, authentication) -> response.setStatus(204))
+            .failureHandler((request, response, exception) -> {
+              response.setStatus(401);
+              response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+              response.getWriter().write("{\"message\":\"인증 정보가 올바르지 않습니다.\"}");
+            })
+            .permitAll())
+        .logout(logout -> logout
+            .logoutUrl("/api/auth/logout")
+            .invalidateHttpSession(true)
+            .deleteCookies("JSESSIONID")
+            .logoutSuccessHandler((request, response, authentication) -> response.setStatus(204)))
+        .httpBasic(basic -> basic.authenticationEntryPoint((request, response, exception) -> {
+          response.setStatus(401);
+          response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+          response.getWriter().write("{\"message\":\"인증 정보가 올바르지 않습니다.\"}");
+        }))
         .build();
   }
 

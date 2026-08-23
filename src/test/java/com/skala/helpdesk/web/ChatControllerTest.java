@@ -8,8 +8,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.asyncDispatch;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,10 +22,13 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.mock.web.MockHttpSession;
 
 import com.skala.helpdesk.advisor.RagAdvisor;
 import com.skala.helpdesk.chat.AnswerDto;
 import com.skala.helpdesk.chat.HelpDeskService;
+import com.skala.helpdesk.chat.HistoryDto;
+import com.skala.helpdesk.chat.HistoryDto.HistoryMessage;
 import com.skala.helpdesk.tools.ToolUsage;
 
 import java.time.Duration;
@@ -67,7 +73,27 @@ class ChatControllerTest {
             .content("""
                 {"sessionId":"s1","question":"12345 조회해줘"}
                 """))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isUnauthorized())
+        .andExpect(header().doesNotExist("WWW-Authenticate"));
+  }
+
+  @Test
+  void 폼_로그인_후_HttpSession으로_API를_호출하고_로그아웃한다() throws Exception {
+    when(chatService.getHistory("user1", "s1")).thenReturn(new HistoryDto(List.of()));
+    MvcResult login = mvc.perform(post("/api/auth/login")
+            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+            .param("username", "user1")
+            .param("password", "user"))
+        .andExpect(status().isNoContent())
+        .andReturn();
+    MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+    assertThat(session).isNotNull();
+
+    mvc.perform(get("/api/chat/history").param("sessionId", "s1").session(session))
+        .andExpect(status().isOk());
+
+    mvc.perform(post("/api/auth/logout").session(session))
+        .andExpect(status().isNoContent());
   }
 
   @Test
@@ -97,6 +123,29 @@ class ChatControllerTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content("{\"sessionId\":\" \",\"question\":\"반품 규정\"}"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void 인증_사용자의_구조화된_대화_이력을_조회하고_삭제한다() throws Exception {
+    when(chatService.getHistory("user1", "s1")).thenReturn(new HistoryDto(List.of(
+        HistoryMessage.message("USER", "내 주문 12345는?"),
+        HistoryMessage.tool("getOrder", "완료"),
+        HistoryMessage.message("ASSISTANT", "배송 중입니다."))));
+
+    mvc.perform(get("/api/chat/history").param("sessionId", "s1")
+            .with(user("user1").roles("USER")))
+        .andExpect(status().isOk())
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.history[0].role")
+            .value("USER"))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.history[1].toolName")
+            .value("getOrder"))
+        .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.history[1].status")
+            .value("완료"));
+
+    mvc.perform(delete("/api/chat/history").param("sessionId", "s1")
+            .with(user("user1").roles("USER")))
+        .andExpect(status().isNoContent());
+    verify(chatService).clearHistory("user1", "s1");
   }
 
   @Test

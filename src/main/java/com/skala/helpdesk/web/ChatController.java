@@ -18,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import java.io.IOException;
@@ -115,8 +116,18 @@ public class ChatController {
             @RequestParam String sessionId,
             Principal principal
         ) {
-            HistoryDto historyResponse = chatService.getHistory(principal.getName(), sessionId);
+            HistoryDto historyResponse = chatService.getHistory(
+                principal.getName(), required(sessionId, "sessionId"));
             return ResponseEntity.ok(historyResponse);
+        }
+
+        @DeleteMapping("/history")
+        public ResponseEntity<Void> clearHistory(
+            @RequestParam String sessionId,
+            Principal principal
+        ) {
+            chatService.clearHistory(principal.getName(), required(sessionId, "sessionId"));
+            return ResponseEntity.noContent().build();
         }
 
         private String required(String value, String name) {

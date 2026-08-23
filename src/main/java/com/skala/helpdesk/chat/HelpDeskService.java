@@ -10,12 +10,15 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.ChatClientResponse;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.ToolResponseMessage;
 import org.springframework.stereotype.Service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import com.skala.helpdesk.advisor.RagAdvisor;
 import org.springframework.ai.document.Document;
 import com.skala.helpdesk.tools.ToolUsage;
+import com.skala.helpdesk.chat.HistoryDto.HistoryMessage;
 import reactor.core.publisher.Flux;
 import com.openai.errors.OpenAIException;
 import com.openai.errors.InternalServerException;
@@ -156,11 +159,26 @@ public class HelpDeskService {
     public HistoryDto getHistory(String userId, String sessionId) {
         String conversationId = ConversationIds.of(tenantId, userId, sessionId);
         List<Message> history = chatMemory.get(conversationId);
+        var messages = new java.util.ArrayList<HistoryMessage>();
+        for (Message message : history) {
+            if (message instanceof AssistantMessage assistant) {
+                if (assistant.getText() != null && !assistant.getText().isBlank()) {
+                    messages.add(HistoryMessage.message("ASSISTANT", assistant.getText()));
+                }
+                assistant.getToolCalls().forEach(call ->
+                    messages.add(HistoryMessage.tool(call.name(), "호출")));
+            } else if (message instanceof ToolResponseMessage tool) {
+                tool.getResponses().forEach(response ->
+                    messages.add(HistoryMessage.tool(response.name(), "완료")));
+            } else if (message.getMessageType().name().equals("USER")
+                    && message.getText() != null && !message.getText().isBlank()) {
+                messages.add(HistoryMessage.message("USER", message.getText()));
+            }
+        }
+        return new HistoryDto(List.copyOf(messages));
+    }
 
-        List<String> messageTexts = history.stream()
-                .map(msg -> msg.getMessageType().name() + ": " + msg.getText())
-                .toList();
-
-        return new HistoryDto(messageTexts);
+    public void clearHistory(String userId, String sessionId) {
+        chatMemory.clear(ConversationIds.of(tenantId, userId, sessionId));
     }
 }
