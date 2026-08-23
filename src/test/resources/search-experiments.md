@@ -50,6 +50,27 @@ A에서 관련 질문 8개에 반환된 청크는 총 21개였고, D에서는 35
 
 실험일: 2026-08-19.
 
+## Lab3 HelpDesk 최종 설정
+
+위 A~F는 Lab2 검색 API의 실험이며 Lab3 상담 RAG의 최종 설정과는 별개다. Lab3는
+`helpdesk.rag.top-k=2`, `helpdesk.rag.threshold=0.29`를 사용한다. 과제 자료의 `top-k=5`,
+`threshold=0.62`는 예시값이며, 실제 재인제스트 후 `0.62`에서 관련 질문까지 빈 결과가 된 것을 확인했다.
+설정 예시로 보고 고정값으로 사용하지 않았다.
+
+`top-k=2` 환경에서 실제 `RagAdvisorTest`와 멀티턴 8개 테스트가 통과했고, 20회 측정에서
+P95 3.356966초와 평균 962토큰을 기록했다. 검색 문서를 프롬프트에 직접 넣는 구조이므로
+현재 품질 기준을 통과하는 범위에서 하위 문서와 토큰을 줄이기 위해 2를 유지한다. `2`와
+`5`의 동일 환경 A/B 성능 측정은 수행하지 않았으므로 이 선택은 현재 통과 결과에 기반한
+운영값이며, 고정 평가값이 5인 환경에서는 아래처럼 설정만 바꿔 재검증한다.
+
+```bash
+GRADLE_USER_HOME="$PWD/.gradle" ./gradlew bootRun \
+  --args='--helpdesk.rag.top-k=5' --console=plain
+```
+
+최종 설정 검증은 `RagAdvisorContextTest`, 실제 검색 품질은 `RagAdvisorTest`, 응답 시간과
+토큰은 `scripts/measure-chat.sh`가 담당한다.
+
 ## 결론
 
 - 권장 임베딩 모델 `text-embedding-3-small`을 사용한다.

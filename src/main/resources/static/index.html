@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SKALA HelpDesk AI</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <h1>SKALA HelpDesk AI</h1>
+    <p class="subtitle">사내 규정과 주문 정보를 함께 확인하는 상담 도우미</p>
+
+    <form id="chat-form">
+      <div class="row">
+        <label>사용자명 <input id="username" value="user1" autocomplete="username" required></label>
+        <label>비밀번호 <input id="password" type="password" autocomplete="current-password" required></label>
+        <label>세션 ID <input id="session" value="web-session-1" required></label>
+      </div>
+      <label for="question">질문</label>
+      <textarea id="question" rows="3" placeholder="예: 반품 규정 알려줘" required></textarea>
+      <div class="actions">
+        <button type="submit">전송</button>
+        <button type="button" id="cancel" class="secondary" disabled>중지</button>
+      </div>
+    </form>
+
+    <section aria-labelledby="answer-title">
+      <h2 id="answer-title">답변</h2>
+      <p id="status" role="status" aria-live="polite">질문을 입력해 주세요.</p>
+      <div id="answer" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="sources-title">
+      <h2 id="sources-title">출처</h2>
+      <ul id="sources"><li>출처가 아직 없습니다.</li></ul>
+    </section>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>

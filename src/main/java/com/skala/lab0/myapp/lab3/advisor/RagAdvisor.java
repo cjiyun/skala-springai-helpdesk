@@ -74,7 +74,8 @@ public class RagAdvisor implements CallAdvisor, StreamAdvisor {
         String userText = messages.get(lastUserIdx).getText();
         if (isToolOnlyRequest(userText)) return new Augmented(request, List.of(), false);
         List<Document> similarDocs = vectorStore.similaritySearch(SearchRequest.builder()
-                .query(userText).topK(topK).similarityThreshold(threshold).build());
+                .query(searchQuery(messages, lastUserIdx, userText))
+                .topK(topK).similarityThreshold(threshold).build());
         if (similarDocs.isEmpty()) return new Augmented(request, List.of(), true);
         String context = similarDocs.stream()
                     .map(d -> {
@@ -87,6 +88,7 @@ public class RagAdvisor implements CallAdvisor, StreamAdvisor {
             String augmentedUserText = """
                     아래 제공된 참고 문서를 바탕으로 질문에 정확하게 답변해 주세요.
                     질문에 "그거" 같은 대명사가 있으면 대화 이력에서 해석한 주문번호나 상품명을 답변에 반드시 밝혀 주세요.
+                    참고 문서가 질문의 답을 뒷받침하지 않으면 다른 설명 없이 NO_EVIDENCE라고만 답하세요.
 
                     [참고 문서]
                     %s
@@ -103,9 +105,20 @@ public class RagAdvisor implements CallAdvisor, StreamAdvisor {
     private boolean isToolOnlyRequest(String text) {
         String lower = text.toLowerCase();
         boolean policy = List.of("규정", "정책", "가능", "돼", "기한", "조건").stream().anyMatch(lower::contains);
-        boolean tool = lower.contains("접수") || (lower.matches(".*\\d{5}.*")
+        boolean statusFollowUp = lower.contains("어떻게 됐") || lower.contains("진행 상황");
+        boolean tool = lower.contains("접수") || statusFollowUp || (lower.matches(".*\\d{5}.*")
                 && List.of("주문", "배송", "도착", "어디").stream().anyMatch(lower::contains));
         return tool && !policy;
+    }
+
+    private String searchQuery(List<Message> messages, int lastUserIdx, String current) {
+        if (!List.of("그거", "그 주문", "그 상품").stream().anyMatch(current::contains)) return current;
+        List<String> recent = new ArrayList<>();
+        for (int i = lastUserIdx - 1; i >= 0 && recent.size() < 2; i--) {
+            if (messages.get(i).getMessageType() == MessageType.USER) recent.add(0, messages.get(i).getText());
+        }
+        recent.add(current);
+        return String.join("\n", recent);
     }
 
     private record Augmented(ChatClientRequest request, List<Document> documents, boolean attempted) {}

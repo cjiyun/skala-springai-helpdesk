@@ -77,6 +77,6 @@ class JdbcChatMemoryRepositoryTest {
         conversation, 0, "USER", "기존 대화");
 
     assertThat(repository.findByConversationId(conversation))
-        .singleElement().extracting(Message::getText).isEqualTo("기존 대화");
+        .singleElement().satisfies(message -> assertThat(message.getText()).isEqualTo("기존 대화"));
   }
 }

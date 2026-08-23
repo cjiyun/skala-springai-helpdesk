@@ -37,8 +37,14 @@ public class Lab3AiConfig {
             ChatMemory memory,
             MeterRegistry meterRegistry,
             OrderTools tools,
-            @Value("${helpdesk.rag.top-k:5}") int topK,
-            @Value("${helpdesk.rag.threshold:0.62}") double threshold
+            @Value("${helpdesk.rag.top-k:2}") int topK,
+            @Value("${helpdesk.rag.threshold:0.29}") double threshold,
+            @Value("${spring.ai.openai.chat.options.model:gpt-4o-mini}") String primaryModel,
+            @Value("${helpdesk.model.fallback:gpt-4.1-mini}") String fallbackModel,
+            @Value("${helpdesk.cost.primary.input-per-million-usd:0.15}") double primaryInputRate,
+            @Value("${helpdesk.cost.primary.output-per-million-usd:0.60}") double primaryOutputRate,
+            @Value("${helpdesk.cost.fallback.input-per-million-usd:0.40}") double fallbackInputRate,
+            @Value("${helpdesk.cost.fallback.output-per-million-usd:1.60}") double fallbackOutputRate
     ) {
         var clientBuilder = builder
                 .defaultSystem(new ClassPathResource("prompts/helpdesk-system.txt"))
@@ -47,7 +53,8 @@ public class Lab3AiConfig {
                         new AuditAdvisor(meterRegistry),                    // order 100 감사
                         MessageChatMemoryAdvisor.builder(memory).order(200).build(),
                         new RagAdvisor(vs, topK, threshold),                // order 300 근거 검색
-                        new TokenMeterAdvisor(meterRegistry)                // order 900 계측
+                        new TokenMeterAdvisor(meterRegistry, primaryModel, fallbackModel,
+                                primaryInputRate, primaryOutputRate, fallbackInputRate, fallbackOutputRate)
                 );
 
         clientBuilder.defaultTools(tools);

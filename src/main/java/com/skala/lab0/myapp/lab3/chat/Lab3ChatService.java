@@ -3,6 +3,7 @@ package com.skala.lab0.myapp.lab3.chat;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.MDC;
 import org.springframework.ai.chat.client.ChatClient;
@@ -17,22 +18,32 @@ import org.springframework.ai.document.Document;
 import com.skala.lab0.myapp.lab3.tools.ToolUsage;
 import reactor.core.publisher.Flux;
 import com.openai.errors.OpenAIException;
+import com.openai.errors.InternalServerException;
+import com.openai.errors.OpenAIIoException;
+import com.openai.errors.RateLimitException;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Service
 public class Lab3ChatService {
+
+    public static final String NO_EVIDENCE_MARKER = "NO_EVIDENCE";
+    public static final String NO_EVIDENCE_REPLY = "관련 사내 규정 근거가 확인되지 않습니다.";
 
     private final ChatClient chatClient;
     private final ChatMemory chatMemory;
     private final String fallbackModel;
     private final String tenantId;
+    private final MeterRegistry meterRegistry;
 
     public Lab3ChatService(ChatClient assistantChatClient, ChatMemory chatMemory,
             @Value("${helpdesk.model.fallback:gpt-4o-mini}") String fallbackModel,
-            @Value("${helpdesk.tenant-id:skala}") String tenantId) {
+            @Value("${helpdesk.tenant-id:skala}") String tenantId,
+            MeterRegistry meterRegistry) {
         this.chatClient = assistantChatClient;
         this.chatMemory = chatMemory;
         this.fallbackModel = fallbackModel;
         this.tenantId = tenantId;
+        this.meterRegistry = meterRegistry;
     }
     /**
      * 챗봇 상담 처리
@@ -50,8 +61,15 @@ public class Lab3ChatService {
             try {
                 response = call(message, conversationId, userId, null, usage);
             } catch (OpenAIException primaryFailure) {
-                if (usage.wasWriteUsed()) throw primaryFailure;
-                response = call(message, conversationId, userId, fallbackModel, usage);
+                if (usage.wasWriteUsed() || !retryable(primaryFailure)) throw primaryFailure;
+                fallbackAttempt("chat");
+                try {
+                    response = call(message, conversationId, userId, fallbackModel, usage);
+                    fallbackOutcome("chat", "success");
+                } catch (RuntimeException fallbackFailure) {
+                    fallbackOutcome("chat", "error");
+                    throw fallbackFailure;
+                }
             }
 
             String botReply = response.chatResponse().getResult().getOutput().getText();
@@ -64,13 +82,19 @@ public class Lab3ChatService {
                             String.valueOf(document.getMetadata().getOrDefault("version", "unknown"))))
                     .distinct().toList();
             boolean ragAttempted = Boolean.TRUE.equals(response.context().get(RagAdvisor.RAG_ATTEMPTED));
-            if (ragAttempted && sources.isEmpty()) {
-                return new AnswerDto("관련 사내 규정 근거가 확인되지 않습니다.", List.of(), usage.wasUsed());
+            if (ragAttempted && (sources.isEmpty() || saysNoEvidence(botReply))) {
+                return new AnswerDto(NO_EVIDENCE_REPLY, List.of(), usage.wasUsed());
             }
             return new AnswerDto(botReply, sources, usage.wasUsed());
         } finally {
             MDC.remove("traceId");
         }
+    }
+
+    private boolean saysNoEvidence(String answer) {
+        return answer.contains(NO_EVIDENCE_MARKER) || answer.contains("근거가 없어")
+                || answer.contains("확인되지 않습니다") || answer.contains("확인할 수 없습니다")
+                || answer.contains("확인된 정보를 드릴 수 없습니다");
     }
 
     private ChatClientResponse call(String message, String conversationId, String userId, String model, ToolUsage usage) {
@@ -83,10 +107,39 @@ public class Lab3ChatService {
 
     public Flux<ChatClientResponse> stream(String userId, String sessionId, String message, ToolUsage usage) {
         String conversationId = ConversationIds.of(tenantId, userId, sessionId);
-        return streamCall(message, conversationId, userId, null, usage)
-                .onErrorResume(OpenAIException.class,
-                        error -> usage.wasWriteUsed() ? Flux.error(error)
-                                : streamCall(message, conversationId, userId, fallbackModel, usage));
+        AtomicBoolean emitted = new AtomicBoolean();
+        return Flux.defer(() -> streamCall(message, conversationId, userId, null, usage))
+                .doOnNext(response -> emitted.set(true))
+                .onErrorResume(error -> error instanceof OpenAIException openAiError
+                                && !emitted.get() && !usage.wasWriteUsed() && retryable(openAiError),
+                        error -> fallbackStream(message, conversationId, userId, usage));
+    }
+
+    private Flux<ChatClientResponse> fallbackStream(String message, String conversationId,
+            String userId, ToolUsage usage) {
+        fallbackAttempt("chat-stream");
+        try {
+            return streamCall(message, conversationId, userId, fallbackModel, usage)
+                    .doOnComplete(() -> fallbackOutcome("chat-stream", "success"))
+                    .doOnError(error -> fallbackOutcome("chat-stream", "error"));
+        } catch (RuntimeException fallbackFailure) {
+            fallbackOutcome("chat-stream", "error");
+            return Flux.error(fallbackFailure);
+        }
+    }
+
+    private void fallbackAttempt(String feature) {
+        meterRegistry.counter("ai.fallback.calls", "feature", feature).increment();
+    }
+
+    private void fallbackOutcome(String feature, String result) {
+        meterRegistry.counter("ai.fallback.outcomes", "feature", feature, "result", result).increment();
+    }
+
+    private boolean retryable(OpenAIException error) {
+        return error instanceof OpenAIIoException
+                || error instanceof InternalServerException
+                || error instanceof RateLimitException;
     }
 
     private Flux<ChatClientResponse> streamCall(String message, String conversationId, String userId,

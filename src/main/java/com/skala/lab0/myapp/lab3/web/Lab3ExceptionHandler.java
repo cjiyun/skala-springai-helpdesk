@@ -23,6 +23,13 @@ public class Lab3ExceptionHandler {
         .body(new ErrorResponse(exception.getReason(), null));
   }
 
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponse> invalidRequest(IllegalArgumentException exception) {
+    return ResponseEntity
+        .status(HttpStatus.BAD_REQUEST)
+        .body(new ErrorResponse(exception.getMessage(), null));
+  }
+
   @ExceptionHandler(AccessDeniedException.class)
   public ResponseEntity<ErrorResponse> forbidden() {
     return ResponseEntity

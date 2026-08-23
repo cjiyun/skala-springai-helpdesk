@@ -17,8 +17,8 @@ public class SafetyAdvisor implements CallAdvisor, StreamAdvisor {
             "이전 지시 무시",
             "시스템 프롬프트",
             "ignore previous instructions",
-            "관리자 권한 부여", "DROP TABLE", "curl http", "모든 사용자의 주문",
-            "개발자 모드", "sudo rm", "주민등록번호", "카드번호"
+            "관리자 권한 부여", "관리자 권한을 부여", "DROP TABLE", "curl http", "모든 사용자의 주문",
+            "개발자 모드", "sudo rm", "보안 정책 우회", "보안 정책을 우회", "jailbreak"
     );
     private static final Pattern RESIDENT_ID = Pattern.compile("(?<!\\d)\\d{6}-?[1-4]\\d{6}(?!\\d)");
     private static final Pattern CARD_NUMBER = Pattern.compile("(?<!\\d)(?:\\d[ -]?){15,18}\\d(?!\\d)");

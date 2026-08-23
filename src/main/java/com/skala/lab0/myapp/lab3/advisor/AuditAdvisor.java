@@ -49,9 +49,7 @@ public class AuditAdvisor implements CallAdvisor, StreamAdvisor {
 
         Timer.Sample sample = Timer.start(meterRegistry);
         long startTime = System.currentTimeMillis();
-        String userText = request.prompt() != null ? request.prompt().getContents() : "";
-
-        log.info("[AUDIT-REQ] User Prompt: {}", userText);
+        log.info("[AUDIT-REQ] [traceId={}] chat request", traceId);
 
         try {
             // 2. 체인 실행
@@ -65,12 +63,7 @@ public class AuditAdvisor implements CallAdvisor, StreamAdvisor {
                     .tag("feature", "chat")
                     .register(meterRegistry));
             
-            String output = "";
-            if (response.chatResponse() != null && response.chatResponse().getResult() != null) {
-                output = response.chatResponse().getResult().getOutput().getText();
-            }
-            
-            log.info("[AUDIT-RES] [traceId={}] Latency: {}ms | Response: {}", traceId, elapsed, output);
+            log.info("[AUDIT-RES] [traceId={}] Latency: {}ms", traceId, elapsed);
             return response;
         } catch (Exception e) {
             long elapsed = System.currentTimeMillis() - startTime;
@@ -82,7 +75,8 @@ public class AuditAdvisor implements CallAdvisor, StreamAdvisor {
                     .tag("feature", "chat")
                     .register(meterRegistry));
 
-            log.warn("[AUDIT-FAIL] [traceId={}] Latency: {}ms | Error: {}", traceId, elapsed, e.getMessage());
+            log.warn("[AUDIT-FAIL] [traceId={}] Latency: {}ms | ErrorType: {}",
+                    traceId, elapsed, e.getClass().getSimpleName());
             throw e;
         } finally {
             // 4. 컨텍스트 정리
